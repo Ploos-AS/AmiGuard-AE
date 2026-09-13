@@ -17,9 +17,16 @@ static int expect(const char *command, long rc, const char *result)
 
 static int fake_scan(const char *path, AmiGuardAEScanResult *out)
 {
-    if (strcmp(path, "clean.bin") == 0) { out->status = AMIGUARD_AE_SCAN_CLEAN; strcpy(out->detail, "known-clean"); }
-    else if (strcmp(path, "virus.bin") == 0) { out->status = AMIGUARD_AE_SCAN_INFECTED; strcpy(out->detail, "Test.Virus"); }
-    else { out->status = AMIGUARD_AE_SCAN_SUSPICIOUS; strcpy(out->detail, "needs-analysis"); }
+    if (strcmp(path, "clean.bin") == 0) {
+        out->status = AMIGUARD_AE_SCAN_CLEAN;
+        strcpy(out->detail, "known-clean");
+    } else if (strcmp(path, "virus.bin") == 0) {
+        out->status = AMIGUARD_AE_SCAN_INFECTED;
+        strcpy(out->detail, "Test.Virus");
+    } else {
+        out->status = AMIGUARD_AE_SCAN_SUSPICIOUS;
+        strcpy(out->detail, "needs-analysis");
+    }
     return 1;
 }
 
@@ -27,7 +34,10 @@ static int write_file(const char *path, const unsigned char *data, unsigned long
 {
     FILE *fp = fopen(path, "wb");
     if (fp == 0) return 0;
-    if (fwrite(data, 1U, (size_t)size, fp) != (size_t)size) { fclose(fp); return 0; }
+    if (fwrite(data, 1U, (size_t)size, fp) != (size_t)size) {
+        fclose(fp);
+        return 0;
+    }
     fclose(fp);
     return 1;
 }
@@ -47,9 +57,9 @@ int main(void)
     }
 
     failed += expect("PING", 0, "PONG");
-    failed += expect(" version ", 0, "AmiGuard AE 0.2.0-m2.5");
-    failed += expect("STATUS", 0, "READY M2.5 scanner=not-connected");
-    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE CHECKSUM IDENTIFY RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+    failed += expect(" version ", 0, "AmiGuard AE 0.2.0-m2.6");
+    failed += expect("STATUS", 0, "READY M2.6 scanner=not-connected");
+    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     failed += expect("IDENTIFY", 10, "ERROR IDENTIFY requires path");
     failed += expect("IDENTIFY build/hunk-fixture.bin", 0, "AMIGA-HUNK HUNK_HEADER");
     failed += expect("IDENTIFY build/iff-fixture.bin", 0, "IFF FORM container");
@@ -58,14 +68,23 @@ int main(void)
     failed += expect("CHECKSUM", 10, "ERROR CHECKSUM requires path");
     failed += expect("CHECKSUM build/checksum-fixture.bin", 0, "CRC32 CBF43926");
     failed += expect("RESULT.STATUS", 10, "ERROR no scan result");
-    failed += expect("SCANFILE", 10, "ERROR SCANFILE requires path");
-    failed += expect("SCANFILE clean.bin", 10, "ERROR scanner unavailable");
+    failed += expect("SCAN", 10, "ERROR SCAN requires path");
+    failed += expect("SCAN clean.bin", 10, "ERROR scanner unavailable");
     failed += expect("RESULT.STATUS", 0, "ERROR");
     failed += expect("RESULT.PATH", 0, "clean.bin");
     failed += expect("RESULT.DETAIL", 0, "scanner unavailable");
     failed += expect("RESULT.CLEAR", 0, "OK");
+    failed += expect("SCANFILE", 10, "ERROR SCANFILE requires path");
+
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS", 0, "READY M2.5 scanner=connected");
+    failed += expect("STATUS", 0, "READY M2.6 scanner=connected");
+    failed += expect("SCAN clean.bin", 0, "CLEAN known-clean");
+    failed += expect("RESULT.STATUS", 0, "CLEAN");
+    failed += expect("RESULT.PATH", 0, "clean.bin");
+    failed += expect("SCAN virus.bin", 5, "INFECTED Test.Virus");
+    failed += expect("RESULT.STATUS", 0, "INFECTED");
+    failed += expect("SCAN sample.bin", 5, "SUSPICIOUS needs-analysis");
+    failed += expect("RESULT.STATUS", 0, "SUSPICIOUS");
     failed += expect("SCANFILE clean.bin", 0, "CLEAN known-clean");
     failed += expect("SCANFILE virus.bin", 5, "INFECTED Test.Virus");
     failed += expect("SCANFILE sample.bin", 5, "SUSPICIOUS needs-analysis");
@@ -77,6 +96,6 @@ int main(void)
     remove("build/hunk-fixture.bin");
     remove("build/iff-fixture.bin");
     if (failed != 0) return 1;
-    puts("M2.5 identify qualification: PASS");
+    puts("M2.6 scan qualification: PASS");
     return 0;
 }

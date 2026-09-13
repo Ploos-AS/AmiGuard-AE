@@ -18,10 +18,11 @@ int main(void)
 {
     int ok = 1;
     ok = expect("PING", AMIGUARD_AE_RC_OK, "PONG") && ok;
-    ok = expect("STATUS", AMIGUARD_AE_RC_OK, "READY M2.2 scanner=connected") && ok;
-    ok = expect("HELP", AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE") && ok;
+    ok = expect("STATUS", AMIGUARD_AE_RC_OK, "READY M2.3 scanner=connected") && ok;
+    ok = expect("RESULT.STATUS", AMIGUARD_AE_RC_ERROR, "ERROR no scan result") && ok;
+    ok = expect("RESULT.CLEAR", AMIGUARD_AE_RC_OK, "OK") && ok;
     ok = expect("BOGUS", AMIGUARD_AE_RC_ERROR, "ERROR unknown command") && ok;
     if (!ok) return AMIGUARD_AE_RC_FAIL;
-    puts("M2.2 AROS scanner bridge smoke: PASS");
+    puts("M2.3 AROS structured result smoke: PASS");
     return AMIGUARD_AE_RC_OK;
 }

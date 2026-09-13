@@ -33,7 +33,26 @@ static int fake_scan(const char *path, AmiGuardAEScanResult *out)
 
 static unsigned long fake_signature_count(void)
 {
-    return 7UL;
+    return 2UL;
+}
+
+static int fake_signature_info(unsigned long index, AmiGuardAESignatureInfo *out)
+{
+    if (out == 0 || index >= 2UL) return 0;
+    if (index == 0UL) {
+        strcpy(out->type, "BOOTBLOCK");
+        strcpy(out->name, "Test.Boot");
+        out->offset = 64UL;
+        out->length = 8UL;
+        out->test_only = 0;
+    } else {
+        strcpy(out->type, "FILE");
+        strcpy(out->name, "Test.File");
+        out->offset = 4UL;
+        out->length = 18UL;
+        out->test_only = 1;
+    }
+    return 1;
 }
 
 static int write_file(const char *path, const unsigned char *data, unsigned long size)
@@ -63,12 +82,19 @@ int main(void)
     }
 
     failed += expect("PING", 0, "PONG");
-    failed += expect(" version ", 0, "AmiGuard AE 0.3.0-m3.1");
-    failed += expect("STATUS", 0, "READY M3.1 scanner=not-connected");
-    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+    failed += expect(" version ", 0, "AmiGuard AE 0.3.0-m3.2");
+    failed += expect("STATUS", 0, "READY M3.2 scanner=not-connected");
+    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.INFO RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     failed += expect("SIGNATURE.COUNT", 10, "ERROR signature backend unavailable");
+    failed += expect("SIGNATURE.INFO 0", 10, "ERROR signature backend unavailable");
     amiguard_ae_signature_set_count_provider(fake_signature_count);
-    failed += expect("SIGNATURE.COUNT", 0, "7");
+    amiguard_ae_signature_set_info_provider(fake_signature_info);
+    failed += expect("SIGNATURE.COUNT", 0, "2");
+    failed += expect("SIGNATURE.INFO", 10, "ERROR SIGNATURE.INFO requires index");
+    failed += expect("SIGNATURE.INFO x", 10, "ERROR invalid signature index");
+    failed += expect("SIGNATURE.INFO 2", 10, "ERROR invalid signature index");
+    failed += expect("SIGNATURE.INFO 0", 0, "INDEX=0 TYPE=BOOTBLOCK OFFSET=64 LENGTH=8 TEST_ONLY=0 NAME=Test.Boot");
+    failed += expect("SIGNATURE.INFO 1", 0, "INDEX=1 TYPE=FILE OFFSET=4 LENGTH=18 TEST_ONLY=1 NAME=Test.File");
     failed += expect("IDENTIFY", 10, "ERROR IDENTIFY requires path");
     failed += expect("IDENTIFY build/hunk-fixture.bin", 0, "AMIGA-HUNK HUNK_HEADER");
     failed += expect("IDENTIFY build/iff-fixture.bin", 0, "IFF FORM container");
@@ -86,7 +112,7 @@ int main(void)
     failed += expect("SCANFILE", 10, "ERROR SCANFILE requires path");
 
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS", 0, "READY M3.1 scanner=connected");
+    failed += expect("STATUS", 0, "READY M3.2 scanner=connected");
     failed += expect("SCAN clean.bin", 0, "CLEAN known-clean");
     failed += expect("RESULT.STATUS", 0, "CLEAN");
     failed += expect("RESULT.PATH", 0, "clean.bin");
@@ -105,6 +131,6 @@ int main(void)
     remove("build/hunk-fixture.bin");
     remove("build/iff-fixture.bin");
     if (failed != 0) return 1;
-    puts("M3.1 signature count qualification: PASS");
+    puts("M3.2 signature info qualification: PASS");
     return 0;
 }

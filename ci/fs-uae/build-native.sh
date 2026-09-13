@@ -21,6 +21,7 @@ docker run --rm \
     src/core.c \
     src/arexx_dispatch.c \
     src/arexx_amiga.c \
+    src/scanner_bridge.c \
     -mcrt=nix20
 
 # CI-only AROS smoke binary. AROS nightly does not ship the classic
@@ -39,6 +40,7 @@ docker run --rm \
     src/main.c \
     src/core.c \
     src/arexx_dispatch.c \
+    src/scanner_bridge.c \
     -mcrt=nix20
 
 cp AmiGuardAE.amiga "$OUT_DIR/AmiGuardAE"
@@ -57,5 +59,5 @@ if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/aros-smoke-file.txt
   exit 1
 fi
 
-printf 'STATUS=PASS\nGATE=M1_NATIVE_BEBBO_BUILD\nIMAGE=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nAREXX_RUNTIME_QUALIFICATION=LOCAL_CLASSIC_AMIGAOS\n' \
+printf 'STATUS=PASS\nGATE=M2_1_NATIVE_BEBBO_BUILD\nIMAGE=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' \
   "$IMAGE" "$OUT_DIR/AmiGuardAE" "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/result.txt"

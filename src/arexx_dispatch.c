@@ -79,7 +79,7 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         set_result(out, AMIGUARD_AE_RC_OK, version);
     } else if (strcmp(verb, "STATUS") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
-                   amiguard_ae_scanner_available() ? "READY M2.1 scanner=connected" : "READY M2.1 scanner=not-connected");
+                   amiguard_ae_scanner_available() ? "READY M2.2 scanner=connected" : "READY M2.2 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE");
     } else if (strcmp(verb, "SCANFILE") == 0) {

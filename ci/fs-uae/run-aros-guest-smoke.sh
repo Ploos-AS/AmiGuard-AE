@@ -32,7 +32,7 @@ rexxlib_host="$(find "$aros_root" -type f -iname 'rexxsyslib.library' -print -qu
   echo "RX=${rx_host:-MISSING}"
   echo "REXXMAST=${rexxmast_host:-MISSING}"
   echo "REXXSYSLIB=${rexxlib_host:-MISSING}"
-  echo "NOTE=AROS gate qualifies native 68k dispatcher/core only; production ARexx transport remains a local classic-AmigaOS gate"
+  echo "NOTE=AROS gate qualifies native 68k scanner bridge/core only; production ARexx transport remains a deferred local classic-AmigaOS gate"
 } > "$OUT_DIR/arexx-capabilities.txt"
 
 cp "$NATIVE" "$aros_root/AmiGuardAE"
@@ -40,15 +40,15 @@ cp "$startup" "$startup.amiguard-ae-original"
 
 cat > "$startup" <<'EOF'
 FailAt 21
-SYS:C/Echo "M1_GUEST_STARTED=1" >SYS:amiguard-ae-m1-started.txt
-SYS:C/Which AmiGuardAE >SYS:amiguard-ae-m1-which.txt
-SYS:C/Echo "M1_BEFORE_AMIGUARD_AE=1" >SYS:amiguard-ae-m1-before.txt
-SYS:AmiGuardAE >SYS:amiguard-ae-m1-output.txt
-SYS:C/Echo $RC >SYS:amiguard-ae-m1-rc.txt
-SYS:C/Echo "M1_AFTER_AMIGUARD_AE=1" >SYS:amiguard-ae-m1-after.txt
+SYS:C/Echo "M2_2_GUEST_STARTED=1" >SYS:amiguard-ae-m2-2-started.txt
+SYS:C/Which AmiGuardAE >SYS:amiguard-ae-m2-2-which.txt
+SYS:C/Echo "M2_2_BEFORE_AMIGUARD_AE=1" >SYS:amiguard-ae-m2-2-before.txt
+SYS:AmiGuardAE >SYS:amiguard-ae-m2-2-output.txt
+SYS:C/Echo $RC >SYS:amiguard-ae-m2-2-rc.txt
+SYS:C/Echo "M2_2_AFTER_AMIGUARD_AE=1" >SYS:amiguard-ae-m2-2-after.txt
 EOF
 
-rm -f "$aros_root"/amiguard-ae-m1-{started,which,before,output,rc,after}.txt
+rm -f "$aros_root"/amiguard-ae-m2-2-{started,which,before,output,rc,after}.txt
 
 config="$OUT_DIR/aros-guest.fs-uae"
 sed "s|@AROS_ROOT@|$PWD/$aros_root|" ci/fs-uae/aros-guest.fs-uae > "$config"
@@ -59,28 +59,33 @@ timeout 45s xvfb-run -a fs-uae "$config" > "$OUT_DIR/fs-uae.log" 2>&1
 rc=$?
 set -e
 
-started="$aros_root/amiguard-ae-m1-started.txt"
-output="$aros_root/amiguard-ae-m1-output.txt"
-guest_rc="$aros_root/amiguard-ae-m1-rc.txt"
-after="$aros_root/amiguard-ae-m1-after.txt"
+started="$aros_root/amiguard-ae-m2-2-started.txt"
+which_file="$aros_root/amiguard-ae-m2-2-which.txt"
+output="$aros_root/amiguard-ae-m2-2-output.txt"
+guest_rc="$aros_root/amiguard-ae-m2-2-rc.txt"
+after="$aros_root/amiguard-ae-m2-2-after.txt"
+before="$aros_root/amiguard-ae-m2-2-before.txt"
 status=FAIL
 observation=guest_result_missing
 
-if [[ -f "$started" && -f "$after" && -f "$output" ]] \
-   && grep -q 'M1 AROS native dispatcher smoke: PASS' "$output" \
-   && grep -q 'SMOKE PASS command=PING rc=0 result=PONG' "$output" \
-   && grep -q 'SMOKE PASS command=BOGUS rc=10 result=ERROR unknown command' "$output"; then
+if [[ -f "$started" && -f "$after" && -f "$output" && -f "$guest_rc" ]] \
+   && grep -q '^0' "$guest_rc" \
+   && grep -q 'M2.2 AROS scanner bridge smoke: PASS' "$output" \
+   && grep -q 'SMOKE PASS PING => PONG' "$output" \
+   && grep -q 'SMOKE PASS STATUS => READY M2.2 scanner=connected' "$output" \
+   && grep -q 'SMOKE PASS HELP => PING VERSION STATUS HELP SCANFILE' "$output" \
+   && grep -q 'SMOKE PASS BOGUS => ERROR unknown command' "$output"; then
   status=PASS
-  observation=native_68k_dispatcher_core_qualified_in_aros
+  observation=native_68k_scanner_bridge_qualified_in_aros
 elif [[ -f "$after" ]]; then
-  observation=guest_smoke_returned_without_expected_dispatcher_evidence
-elif [[ -f "$aros_root/amiguard-ae-m1-before.txt" ]]; then
+  observation=guest_smoke_returned_without_expected_m2_2_evidence
+elif [[ -f "$before" ]]; then
   observation=guest_entered_smoke_binary_but_did_not_return
 fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M1_AROS_NATIVE_DISPATCHER_SMOKE"
+  echo "GATE=M2_2_AROS_SCANNER_BRIDGE_SMOKE"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "AROS_ROOT=$aros_root"
@@ -88,9 +93,9 @@ fi
   echo "OBSERVATION=$observation"
   echo "AROS_REXXMAST=${rexxmast_host:-MISSING}"
   echo "AROS_REXXSYSLIB=${rexxlib_host:-MISSING}"
-  echo "AREXX_RUNTIME_QUALIFICATION=LOCAL_CLASSIC_AMIGAOS"
-  if [[ -f "$aros_root/amiguard-ae-m1-which.txt" ]]; then
-    tr -d '\r' < "$aros_root/amiguard-ae-m1-which.txt" | sed 's/^/GUEST_WHICH=/'
+  echo "AREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS"
+  if [[ -f "$which_file" ]]; then
+    tr -d '\r' < "$which_file" | sed 's/^/GUEST_WHICH=/'
   fi
   if [[ -f "$guest_rc" ]]; then
     tr -d '\r' < "$guest_rc" | sed 's/^/GUEST_RC=/'

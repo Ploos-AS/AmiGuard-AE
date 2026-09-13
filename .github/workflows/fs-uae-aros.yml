@@ -1,0 +1,50 @@
+name: FS-UAE AROS qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  m1-native-aros:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FS-UAE runtime tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fs-uae xvfb curl lhasa file p7zip-full unzip
+
+      - name: Host qualification
+        run: make check
+
+      - name: Gate A - native Bebbo 68000 build
+        run: bash ci/fs-uae/build-native.sh
+
+      - name: Gate B - execute AmiGuard AE inside AROS guest
+        run: bash ci/fs-uae/run-aros-guest-smoke.sh
+
+      - name: Upload M1 qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m1-fs-uae-aros-qualification
+          path: |
+            build/fs-uae/native/AmiGuardAE
+            build/fs-uae/native/AmiGuardAE.sha256
+            build/fs-uae/native/file.txt
+            build/fs-uae/native/result.txt
+            build/fs-uae/native/toolchain-image.txt
+            build/fs-uae/aros-system/source.txt
+            build/fs-uae/aros-system/archive.sha256
+            build/fs-uae/aros-guest/result.txt
+            build/fs-uae/aros-guest/fs-uae.log
+            build/fs-uae/aros-guest/fs-uae-version.txt
+            build/fs-uae/aros-guest/aros-guest.fs-uae
+          if-no-files-found: warn

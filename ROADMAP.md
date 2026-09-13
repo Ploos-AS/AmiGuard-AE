@@ -24,7 +24,7 @@ Status: **complete**.
 
 ## M1 - Native skeleton
 
-Status: **implementation complete; runtime qualification pending**.
+Status: **implementation complete; automated native-core qualification complete; classic AmigaOS ARexx transport qualification deferred to local runtime**.
 
 Implemented:
 
@@ -35,25 +35,51 @@ Implemented:
 - AmigaDOS/ARexx return codes: 0 OK, 5 WARN, 10 ERROR, 20 FAIL.
 - Host unit qualification for command dispatch.
 - GitHub Actions host qualification.
-- `examples/m1_qualification.rexx` runtime probe.
+- FS-UAE/AROS native 68k qualification of the dispatcher/core.
+- `examples/m1_qualification.rexx` runtime probe for classic AmigaOS.
 
-Runtime gate before M1 may be marked complete:
+Deferred local transport gate:
 
 1. Cross-build `AmiGuardAE.amiga` for 68000.
 2. Boot an AmigaOS 2.04+ / 68000-class FS-UAE guest with RexxMast available.
 3. Start AmiGuardAE and verify the `AMIGUARD` port exists.
 4. Run `examples/m1_qualification.rexx` through ARexx.
-5. Record PASS for PING, VERSION, STATUS, HELP and deterministic unknown-command RC=10.
+5. Verify deterministic command return codes and result strings.
 6. Verify clean shutdown/removal of the public port.
+
+AROS nightly does not provide the classic `rexxsyslib.library` required to qualify the production ARexx transport, so CI intentionally qualifies the same native 68k dispatcher/core without pretending that transport gate has passed.
 
 ## M2 - Scanner bridge
 
-- Connect AE to AmiGuard-compatible scanning/signature functionality.
-- Implement `SCAN`, `SCANFILE`, `CHECKSUM`, `IDENTIFY`.
-- Structured result retrieval (`RESULT.*`).
-- Preserve scanner operation when ARexx is unavailable.
+Status: **complete for implementation and automated native-core qualification; classic AmigaOS ARexx transport qualification remains deferred with M1**.
+
+Implemented and automated-qualified:
+
+- M2.1 scanner bridge/provider boundary and `SCANFILE`.
+- M2.2 pinned AmiGuard scanner integration for native 68000 builds.
+- M2.3 structured `RESULT.STATUS`, `RESULT.PATH`, `RESULT.DETAIL`, `RESULT.CLEAR`.
+- M2.4 `CHECKSUM <path>` using CRC32 for identification/integrity convenience.
+- M2.5 `IDENTIFY <path>` with stable file-type output.
+- M2.6 `SCAN <path>` using the scanner bridge and structured result state.
+- Scanner/core operation remains independent of RexxMast.
+- Host qualification plus Bebbo 68000 build and FS-UAE/AROS guest smoke gates.
+
+Current M2 command surface:
+
+- `SCAN <path>`
+- `SCANFILE <path>`
+- `CHECKSUM <path>`
+- `IDENTIFY <path>`
+- `RESULT.STATUS`
+- `RESULT.PATH`
+- `RESULT.DETAIL`
+- `RESULT.CLEAR`
+
+`SCAN` and `SCANFILE` currently operate on one path per command. Recursive directory or volume scanning is not implied by the M2 contract and should get its own explicit semantics before implementation.
 
 ## M3 - Signature automation
+
+Status: **next**.
 
 - `SIGNATURE.INFO`, `SIGNATURE.COUNT`, update/status operations.
 - Stable machine-readable result variables.
@@ -73,4 +99,4 @@ Runtime gate before M1 may be marked complete:
 
 ## Release gate
 
-The first public release should not be cut merely because the ARexx port responds. It should include useful scanner automation, stable return semantics, documentation/examples, and runtime qualification.
+The first public release should not be cut merely because the ARexx port responds. It should include useful scanner automation, stable return semantics, documentation/examples, and classic AmigaOS runtime qualification of the production ARexx transport.

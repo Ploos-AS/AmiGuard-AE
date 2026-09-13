@@ -5,6 +5,7 @@
 #include "amiguard_ae.h"
 #include "arexx_dispatch.h"
 #include "scanner_bridge.h"
+#include "result_store.h"
 
 static void trim_upper_token(const char *command, char *token, unsigned long size)
 {
@@ -44,10 +45,12 @@ static void dispatch_scanfile(const char *command, AmiGuardAERexxResult *out)
         return;
     }
     if (!amiguard_ae_scanner_scan_file(path, &scan)) {
+        amiguard_ae_result_record(path, &scan);
         sprintf(text, "ERROR %s", scan.detail);
         set_result(out, AMIGUARD_AE_RC_ERROR, text);
         return;
     }
+    amiguard_ae_result_record(path, &scan);
     if (scan.status == AMIGUARD_AE_SCAN_INFECTED) {
         sprintf(text, "INFECTED %s", scan.detail);
         set_result(out, AMIGUARD_AE_RC_WARN, text);
@@ -61,6 +64,27 @@ static void dispatch_scanfile(const char *command, AmiGuardAERexxResult *out)
         sprintf(text, "ERROR %s", scan.detail);
         set_result(out, AMIGUARD_AE_RC_ERROR, text);
     }
+}
+
+static void dispatch_result(const char *verb, AmiGuardAERexxResult *out)
+{
+    if (strcmp(verb, "RESULT.CLEAR") == 0) {
+        amiguard_ae_result_clear();
+        set_result(out, AMIGUARD_AE_RC_OK, "OK");
+        return;
+    }
+    if (!amiguard_ae_result_valid()) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR no scan result");
+        return;
+    }
+    if (strcmp(verb, "RESULT.STATUS") == 0)
+        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_status());
+    else if (strcmp(verb, "RESULT.PATH") == 0)
+        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_path());
+    else if (strcmp(verb, "RESULT.DETAIL") == 0)
+        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_detail());
+    else
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR unknown RESULT command");
 }
 
 void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
@@ -79,11 +103,13 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         set_result(out, AMIGUARD_AE_RC_OK, version);
     } else if (strcmp(verb, "STATUS") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
-                   amiguard_ae_scanner_available() ? "READY M2.2 scanner=connected" : "READY M2.2 scanner=not-connected");
+                   amiguard_ae_scanner_available() ? "READY M2.3 scanner=connected" : "READY M2.3 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE");
+        set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     } else if (strcmp(verb, "SCANFILE") == 0) {
         dispatch_scanfile(command, out);
+    } else if (strncmp(verb, "RESULT.", 7) == 0) {
+        dispatch_result(verb, out);
     } else if (verb[0] == '\0') {
         set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR empty command");
     } else {

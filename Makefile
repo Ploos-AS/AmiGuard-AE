@@ -45,7 +45,7 @@ check: test
 	@grep -q 'AMIGUARD_AE_AREXX_PORT "AMIGUARD"' include/amiguard_ae.h
 	@grep -q 'm68k-amigaos-gcc' Makefile
 	@grep -q -- '-m68000' Makefile
-	@echo "M2.5 host qualification: PASS"
+	@echo "M2.6 host qualification: PASS"
 
 clean:
 	rm -rf $(TARGET) $(TARGET).amiga build

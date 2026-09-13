@@ -30,7 +30,7 @@ rexxlib_host="$(find "$aros_root" -type f -iname 'rexxsyslib.library' -print -qu
 {
   echo "REXXMAST=${rexxmast_host:-MISSING}"
   echo "REXXSYSLIB=${rexxlib_host:-MISSING}"
-  echo "NOTE=AROS gate qualifies native 68k scanner/result/checksum/identify/signature-count core only; production ARexx transport remains a deferred local classic-AmigaOS gate"
+  echo "NOTE=AROS gate qualifies native 68k scanner/result/checksum/identify/signature metadata core only; production ARexx transport remains a deferred local classic-AmigaOS gate"
 } > "$OUT_DIR/arexx-capabilities.txt"
 
 cp "$NATIVE" "$aros_root/AmiGuardAE"
@@ -38,15 +38,15 @@ cp "$startup" "$startup.amiguard-ae-original"
 
 cat > "$startup" <<'EOF'
 FailAt 21
-SYS:C/Echo "M3_1_GUEST_STARTED=1" >SYS:amiguard-ae-m3-1-started.txt
-SYS:C/Which AmiGuardAE >SYS:amiguard-ae-m3-1-which.txt
-SYS:C/Echo "M3_1_BEFORE_AMIGUARD_AE=1" >SYS:amiguard-ae-m3-1-before.txt
-SYS:AmiGuardAE >SYS:amiguard-ae-m3-1-output.txt
-SYS:C/Echo $RC >SYS:amiguard-ae-m3-1-rc.txt
-SYS:C/Echo "M3_1_AFTER_AMIGUARD_AE=1" >SYS:amiguard-ae-m3-1-after.txt
+SYS:C/Echo "M3_2_GUEST_STARTED=1" >SYS:amiguard-ae-m3-2-started.txt
+SYS:C/Which AmiGuardAE >SYS:amiguard-ae-m3-2-which.txt
+SYS:C/Echo "M3_2_BEFORE_AMIGUARD_AE=1" >SYS:amiguard-ae-m3-2-before.txt
+SYS:AmiGuardAE >SYS:amiguard-ae-m3-2-output.txt
+SYS:C/Echo $RC >SYS:amiguard-ae-m3-2-rc.txt
+SYS:C/Echo "M3_2_AFTER_AMIGUARD_AE=1" >SYS:amiguard-ae-m3-2-after.txt
 EOF
 
-rm -f "$aros_root"/amiguard-ae-m3-1-{started,which,before,output,rc,after}.txt
+rm -f "$aros_root"/amiguard-ae-m3-2-{started,which,before,output,rc,after}.txt
 
 config="$OUT_DIR/aros-guest.fs-uae"
 sed "s|@AROS_ROOT@|$PWD/$aros_root|" ci/fs-uae/aros-guest.fs-uae > "$config"
@@ -57,21 +57,24 @@ timeout 45s xvfb-run -a fs-uae "$config" > "$OUT_DIR/fs-uae.log" 2>&1
 rc=$?
 set -e
 
-started="$aros_root/amiguard-ae-m3-1-started.txt"
-which_file="$aros_root/amiguard-ae-m3-1-which.txt"
-output="$aros_root/amiguard-ae-m3-1-output.txt"
-guest_rc="$aros_root/amiguard-ae-m3-1-rc.txt"
-after="$aros_root/amiguard-ae-m3-1-after.txt"
-before="$aros_root/amiguard-ae-m3-1-before.txt"
+started="$aros_root/amiguard-ae-m3-2-started.txt"
+which_file="$aros_root/amiguard-ae-m3-2-which.txt"
+output="$aros_root/amiguard-ae-m3-2-output.txt"
+guest_rc="$aros_root/amiguard-ae-m3-2-rc.txt"
+after="$aros_root/amiguard-ae-m3-2-after.txt"
+before="$aros_root/amiguard-ae-m3-2-before.txt"
 status=FAIL
 observation=guest_result_missing
 
 if [[ -f "$started" && -f "$after" && -f "$output" && -f "$guest_rc" ]] \
    && grep -q '^0' "$guest_rc" \
-   && grep -q 'M3.1 AROS signature count smoke: PASS' "$output" \
+   && grep -q 'M3.2 AROS signature info smoke: PASS' "$output" \
    && grep -q 'SMOKE PASS PING => PONG' "$output" \
-   && grep -q 'SMOKE PASS STATUS => READY M3.1 scanner=connected' "$output" \
+   && grep -q 'SMOKE PASS STATUS => READY M3.2 scanner=connected' "$output" \
    && grep -q 'SMOKE PASS SIGNATURE.COUNT => 4' "$output" \
+   && grep -q 'SMOKE PASS SIGNATURE.INFO 0 => INDEX=0 TYPE=BOOTBLOCK OFFSET=64 LENGTH=8 TEST_ONLY=0 NAME=AmiGuard.Test.Marker' "$output" \
+   && grep -q 'SMOKE PASS SIGNATURE.INFO 2 => INDEX=2 TYPE=FILE OFFSET=4 LENGTH=18 TEST_ONLY=1 NAME=AmiGuard synthetic file test marker' "$output" \
+   && grep -q 'SMOKE PASS SIGNATURE.INFO 4 => ERROR invalid signature index' "$output" \
    && grep -q 'SMOKE PASS SCAN => ERROR SCAN requires path' "$output" \
    && grep -q 'SMOKE PASS SCAN RAM:amiguard-ae-crc.bin => CLEAN ' "$output" \
    && grep -q 'SMOKE PASS RESULT.STATUS => CLEAN' "$output" \
@@ -81,16 +84,16 @@ if [[ -f "$started" && -f "$after" && -f "$output" && -f "$guest_rc" ]] \
    && grep -q 'SMOKE PASS RESULT.CLEAR => OK' "$output" \
    && grep -q 'SMOKE PASS BOGUS => ERROR unknown command' "$output"; then
   status=PASS
-  observation=native_68k_signature_count_api_qualified_in_aros
+  observation=native_68k_signature_info_api_qualified_in_aros
 elif [[ -f "$after" ]]; then
-  observation=guest_smoke_returned_without_expected_m3_1_evidence
+  observation=guest_smoke_returned_without_expected_m3_2_evidence
 elif [[ -f "$before" ]]; then
   observation=guest_entered_smoke_binary_but_did_not_return
 fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M3_1_AROS_SIGNATURE_COUNT_SMOKE"
+  echo "GATE=M3_2_AROS_SIGNATURE_INFO_SMOKE"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "AROS_ROOT=$aros_root"

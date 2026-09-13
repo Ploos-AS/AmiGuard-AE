@@ -44,7 +44,7 @@ docker run --rm -v "$PWD:/work" -w /work "$IMAGE" \
     -Iinclude -Isrc -I"$AMIGUARD_DIR/src" \
     -Os -Wall -Wextra -Werror -m68000 \
     -o AmiGuardAE-aros-smoke.amiga \
-    ci/fs-uae/m2_2_smoke_main.c "${COMMON_SOURCES[@]}" \
+    ci/fs-uae/aros_smoke_main.c "${COMMON_SOURCES[@]}" \
     -mcrt=nix20
 
 cp AmiGuardAE.amiga "$OUT_DIR/AmiGuardAE"

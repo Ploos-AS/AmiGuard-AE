@@ -36,19 +36,19 @@ int main(void)
     int failed = 0;
     failed += expect("PING", 0, "PONG");
     failed += expect(" version ", 0, "AmiGuard AE 0.1.0-m1");
-    failed += expect("STATUS", 0, "READY M2.1 scanner=not-connected");
+    failed += expect("STATUS", 0, "READY M2.2 scanner=not-connected");
     failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE");
     failed += expect("SCANFILE", 10, "ERROR SCANFILE requires path");
     failed += expect("SCANFILE clean.bin", 10, "ERROR scanner unavailable");
 
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS", 0, "READY M2.1 scanner=connected");
+    failed += expect("STATUS", 0, "READY M2.2 scanner=connected");
     failed += expect("SCANFILE clean.bin", 0, "CLEAN known-clean");
     failed += expect("SCANFILE virus.bin", 5, "INFECTED Test.Virus");
     failed += expect("SCANFILE sample.bin", 5, "SUSPICIOUS needs-analysis");
     failed += expect("BOGUS", 10, "ERROR unknown command");
     failed += expect("", 10, "ERROR empty command");
     if (failed != 0) return 1;
-    puts("M2.1 scanner bridge qualification: PASS");
+    puts("M2.2 scanner bridge qualification: PASS");
     return 0;
 }

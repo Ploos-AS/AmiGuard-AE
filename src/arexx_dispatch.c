@@ -165,6 +165,31 @@ static void dispatch_signature_info(const char *command, AmiGuardAERexxResult *o
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
+static void dispatch_signature_update(const char *command, AmiGuardAERexxResult *out)
+{
+    const char *arg = command_argument(command);
+    char detail[AMIGUARD_AE_SIGNATURE_UPDATE_DETAIL_MAX];
+    char text[AMIGUARD_AE_RESULT_MAX];
+
+    if (*arg != '\0') {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE takes no arguments");
+        return;
+    }
+    if (!amiguard_ae_signature_update_available()) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature updater unavailable");
+        return;
+    }
+    if (!amiguard_ae_signature_update(detail, sizeof(detail))) {
+        if (detail[0] == '\0') strcpy(detail, "update failed");
+        sprintf(text, "ERROR %s", detail);
+        set_result(out, AMIGUARD_AE_RC_ERROR, text);
+        return;
+    }
+    if (detail[0] == '\0') strcpy(detail, "updated");
+    sprintf(text, "UPDATED %s", detail);
+    set_result(out, AMIGUARD_AE_RC_OK, text);
+}
+
 static void dispatch_result(const char *verb, AmiGuardAERexxResult *out)
 {
     if (strcmp(verb, "RESULT.CLEAR") == 0) {
@@ -205,11 +230,11 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
     } else if (strcmp(verb, "STATUS") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
                    amiguard_ae_scanner_available()
-                       ? "READY M3.2 scanner=connected"
-                       : "READY M3.2 scanner=not-connected");
+                       ? "READY M3.3 scanner=connected"
+                       : "READY M3.3 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
-                   "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.INFO RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+                   "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.INFO SIGNATURE.UPDATE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     } else if (strcmp(verb, "SCAN") == 0) {
         dispatch_scan_target(command, "SCAN", out);
     } else if (strcmp(verb, "SCANFILE") == 0) {
@@ -222,6 +247,8 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         dispatch_signature_count(out);
     } else if (strcmp(verb, "SIGNATURE.INFO") == 0) {
         dispatch_signature_info(command, out);
+    } else if (strcmp(verb, "SIGNATURE.UPDATE") == 0) {
+        dispatch_signature_update(command, out);
     } else if (strncmp(verb, "RESULT.", 7) == 0) {
         dispatch_result(verb, out);
     } else if (verb[0] == '\0') {

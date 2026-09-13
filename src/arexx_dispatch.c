@@ -4,6 +4,7 @@
 
 #include "amiguard_ae.h"
 #include "arexx_dispatch.h"
+#include "scanner_bridge.h"
 
 static void trim_upper_token(const char *command, char *token, unsigned long size)
 {
@@ -16,12 +17,50 @@ static void trim_upper_token(const char *command, char *token, unsigned long siz
     token[i] = '\0';
 }
 
+static const char *command_argument(const char *command)
+{
+    while (*command != '\0' && isspace((unsigned char)*command)) ++command;
+    while (*command != '\0' && !isspace((unsigned char)*command)) ++command;
+    while (*command != '\0' && isspace((unsigned char)*command)) ++command;
+    return command;
+}
+
 static void set_result(AmiGuardAERexxResult *out, long rc, const char *text)
 {
     out->rc = rc;
     if (text == NULL) text = "";
     strncpy(out->result, text, AMIGUARD_AE_RESULT_MAX - 1);
     out->result[AMIGUARD_AE_RESULT_MAX - 1] = '\0';
+}
+
+static void dispatch_scanfile(const char *command, AmiGuardAERexxResult *out)
+{
+    const char *path = command_argument(command);
+    AmiGuardAEScanResult scan;
+    char text[AMIGUARD_AE_RESULT_MAX];
+
+    if (*path == '\0') {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SCANFILE requires path");
+        return;
+    }
+    if (!amiguard_ae_scanner_scan_file(path, &scan)) {
+        sprintf(text, "ERROR %s", scan.detail);
+        set_result(out, AMIGUARD_AE_RC_ERROR, text);
+        return;
+    }
+    if (scan.status == AMIGUARD_AE_SCAN_INFECTED) {
+        sprintf(text, "INFECTED %s", scan.detail);
+        set_result(out, AMIGUARD_AE_RC_WARN, text);
+    } else if (scan.status == AMIGUARD_AE_SCAN_SUSPICIOUS) {
+        sprintf(text, "SUSPICIOUS %s", scan.detail);
+        set_result(out, AMIGUARD_AE_RC_WARN, text);
+    } else if (scan.status == AMIGUARD_AE_SCAN_CLEAN) {
+        sprintf(text, "CLEAN %s", scan.detail);
+        set_result(out, AMIGUARD_AE_RC_OK, text);
+    } else {
+        sprintf(text, "ERROR %s", scan.detail);
+        set_result(out, AMIGUARD_AE_RC_ERROR, text);
+    }
 }
 
 void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
@@ -39,9 +78,12 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         sprintf(version, "%s %s", AMIGUARD_AE_NAME, amiguard_ae_version_string());
         set_result(out, AMIGUARD_AE_RC_OK, version);
     } else if (strcmp(verb, "STATUS") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK, "READY M1 scanner=not-connected");
+        set_result(out, AMIGUARD_AE_RC_OK,
+                   amiguard_ae_scanner_available() ? "READY M2.1 scanner=connected" : "READY M2.1 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP");
+        set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE");
+    } else if (strcmp(verb, "SCANFILE") == 0) {
+        dispatch_scanfile(command, out);
     } else if (verb[0] == '\0') {
         set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR empty command");
     } else {

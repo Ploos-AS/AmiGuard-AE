@@ -13,7 +13,7 @@ AmiGuard AE (ARexx Edition) is the automation-oriented member of the AmiGuard fa
 
 ## M0 - Foundation
 
-Status: complete when the repository contains the architecture/API baseline and a host-checkable source skeleton.
+Status: **complete**.
 
 - Project scope and compatibility contract.
 - MIT license, Copyright Ploos AS.
@@ -24,11 +24,27 @@ Status: complete when the repository contains the architecture/API baseline and 
 
 ## M1 - Native skeleton
 
-- Build with the Bebbo `m68k-amigaos-gcc` toolchain for `-m68000`.
-- Start/stop `AMIGUARD` ARexx port safely.
-- Implement `VERSION`, `STATUS`, `PING`, `HELP`.
-- Establish documented AmigaDOS/ARexx return-code conventions.
-- Initial FS-UAE runtime qualification.
+Status: **implementation complete; runtime qualification pending**.
+
+Implemented:
+
+- Bebbo `m68k-amigaos-gcc` build target with `-m68000`.
+- Native `AMIGUARD` public message port lifecycle.
+- ARexx message dispatch and result-string replies.
+- `PING`, `VERSION`, `STATUS`, `HELP`.
+- AmigaDOS/ARexx return codes: 0 OK, 5 WARN, 10 ERROR, 20 FAIL.
+- Host unit qualification for command dispatch.
+- GitHub Actions host qualification.
+- `examples/m1_qualification.rexx` runtime probe.
+
+Runtime gate before M1 may be marked complete:
+
+1. Cross-build `AmiGuardAE.amiga` for 68000.
+2. Boot an AmigaOS 2.04+ / 68000-class FS-UAE guest with RexxMast available.
+3. Start AmiGuardAE and verify the `AMIGUARD` port exists.
+4. Run `examples/m1_qualification.rexx` through ARexx.
+5. Record PASS for PING, VERSION, STATUS, HELP and deterministic unknown-command RC=10.
+6. Verify clean shutdown/removal of the public port.
 
 ## M2 - Scanner bridge
 

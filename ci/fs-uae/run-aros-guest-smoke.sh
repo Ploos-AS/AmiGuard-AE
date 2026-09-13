@@ -10,7 +10,7 @@ if [[ ! -f build/fs-uae/native/AmiGuardAE ]]; then
   exit 1
 fi
 
-iso="$(ci/fs-uae/fetch-aros-system.sh "$SYSTEM_DIR" | tail -n 1)"
+iso="$(bash ci/fs-uae/fetch-aros-system.sh "$SYSTEM_DIR" | tail -n 1)"
 root_extract="$OUT_DIR/system-root"
 rm -rf "$root_extract"
 mkdir -p "$root_extract"

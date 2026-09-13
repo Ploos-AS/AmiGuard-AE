@@ -35,7 +35,7 @@ int main(void)
 {
     int failed = 0;
     failed += expect("PING", 0, "PONG");
-    failed += expect(" version ", 0, "AmiGuard AE 0.1.0-m1");
+    failed += expect(" version ", 0, "AmiGuard AE 0.2.0-m2.3");
     failed += expect("STATUS", 0, "READY M2.3 scanner=not-connected");
     failed += expect("RESULT.STATUS", 10, "ERROR no scan result");
     failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");

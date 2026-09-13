@@ -10,6 +10,17 @@ AMIGUARD
 
 Scripts should use `ADDRESS AMIGUARD` after verifying that the application is running.
 
+## Return codes
+
+M1 freezes the base return-code convention:
+
+- `0` — OK
+- `5` — warning / partial success
+- `10` — command or runtime error
+- `20` — fatal failure
+
+Unknown and empty commands return RC `10` deterministically.
+
 ## Contract principles
 
 1. Commands are case-insensitive.
@@ -21,10 +32,29 @@ Scripts should use `ADDRESS AMIGUARD` after verifying that the application is ru
 
 ## M1 core commands
 
-- `PING` - liveness test.
-- `VERSION` - application/API version.
-- `STATUS` - scanner/port state.
-- `HELP [command]` - command discovery.
+### `PING`
+
+Returns RC `0` and result `PONG`.
+
+### `VERSION`
+
+Returns RC `0` and the AmiGuard AE version string.
+
+### `STATUS`
+
+Returns RC `0` and current service state. During M1 the expected result is:
+
+```
+READY M1 scanner=not-connected
+```
+
+### `HELP`
+
+Returns RC `0` and the discovery command list:
+
+```
+PING VERSION STATUS HELP
+```
 
 ## Planned scanner commands
 
@@ -62,27 +92,11 @@ Destructive or state-changing operations require additional safety design before
 
 ## Planned events
 
-The event mechanism is intentionally not frozen in M0. Candidate events are:
+Candidate events are scan started/completed, infected/detection, clean, error, quarantine and signature update. The implementation must avoid re-entrancy hazards and must define whether events invoke scripts, signal an observer, or enqueue messages before this API is declared stable.
 
-- scan started/completed
-- infected/detection
-- clean
-- error
-- quarantine
-- signature update
+## Qualification
 
-The implementation must avoid re-entrancy hazards and must define whether events invoke scripts, signal an observer, or enqueue messages before this API is declared stable.
-
-## Example
-
-```rexx
-/* AmiGuard AE smoke test */
-ADDRESS AMIGUARD
-'PING'
-IF RC ~= 0 THEN EXIT RC
-'VERSION'
-EXIT RC
-```
+`examples/m1_qualification.rexx` is the canonical M1 guest-side runtime probe. M1 is not complete until it passes against the native 68000 build in FS-UAE and the public port is verified to disappear cleanly on shutdown.
 
 ## Compatibility
 

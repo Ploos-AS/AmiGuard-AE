@@ -23,12 +23,12 @@ COMMON_SOURCES=(
   src/scanner_bridge.c
   src/result_store.c
   src/checksum.c
+  src/identify.c
   "$AMIGUARD_DIR/src/file_intake.c"
   "$AMIGUARD_DIR/src/file_signatures.c"
   "$AMIGUARD_DIR/src/hunk.c"
 )
 
-# Production binary with real classic ARexx transport + real AmiGuard engine.
 docker run --rm -v "$PWD:/work" -w /work "$IMAGE" \
   m68k-amigaos-gcc \
     -DAMIGUARD_AE_WITH_AMIGUARD=1 \
@@ -38,7 +38,6 @@ docker run --rm -v "$PWD:/work" -w /work "$IMAGE" \
     src/main.c src/arexx_amiga.c "${COMMON_SOURCES[@]}" \
     -mcrt=nix20
 
-# AROS smoke proves the same 68k dispatcher + AmiGuard engine without classic ARexx.
 docker run --rm -v "$PWD:/work" -w /work "$IMAGE" \
   m68k-amigaos-gcc \
     -DAMIGUARD_AE_WITH_AMIGUARD=1 \
@@ -58,5 +57,5 @@ sha256sum "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/AmiGuardAE-aros-smoke
 if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/file.txt"; then exit 1; fi
 if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/aros-smoke-file.txt"; then exit 1; fi
 
-printf 'STATUS=PASS\nGATE=M2_4_NATIVE_BEBBO_BUILD\nIMAGE=%s\nAMIGUARD_COMMIT=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' \
+printf 'STATUS=PASS\nGATE=M2_5_NATIVE_BEBBO_BUILD\nIMAGE=%s\nAMIGUARD_COMMIT=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' \
   "$IMAGE" "$AMIGUARD_COMMIT" "$OUT_DIR/AmiGuardAE" "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/result.txt"

@@ -22,6 +22,7 @@ COMMON_SOURCES=(
   src/arexx_dispatch.c
   src/scanner_bridge.c
   src/result_store.c
+  src/checksum.c
   "$AMIGUARD_DIR/src/file_intake.c"
   "$AMIGUARD_DIR/src/file_signatures.c"
   "$AMIGUARD_DIR/src/hunk.c"
@@ -57,5 +58,5 @@ sha256sum "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/AmiGuardAE-aros-smoke
 if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/file.txt"; then exit 1; fi
 if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/aros-smoke-file.txt"; then exit 1; fi
 
-printf 'STATUS=PASS\nGATE=M2_3_NATIVE_BEBBO_BUILD\nIMAGE=%s\nAMIGUARD_COMMIT=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' \
+printf 'STATUS=PASS\nGATE=M2_4_NATIVE_BEBBO_BUILD\nIMAGE=%s\nAMIGUARD_COMMIT=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' \
   "$IMAGE" "$AMIGUARD_COMMIT" "$OUT_DIR/AmiGuardAE" "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/result.txt"

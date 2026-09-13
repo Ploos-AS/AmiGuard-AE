@@ -31,14 +31,34 @@ static int fake_scan(const char *path, AmiGuardAEScanResult *out)
     return 1;
 }
 
+static int write_checksum_fixture(void)
+{
+    FILE *fp = fopen("build/checksum-fixture.bin", "wb");
+    if (fp == 0) return 0;
+    if (fwrite("123456789", 1U, 9U, fp) != 9U) {
+        fclose(fp);
+        return 0;
+    }
+    fclose(fp);
+    return 1;
+}
+
 int main(void)
 {
     int failed = 0;
+    if (!write_checksum_fixture()) {
+        fprintf(stderr, "FAIL cannot create checksum fixture\n");
+        return 1;
+    }
+
     failed += expect("PING", 0, "PONG");
-    failed += expect(" version ", 0, "AmiGuard AE 0.2.0-m2.3");
-    failed += expect("STATUS", 0, "READY M2.3 scanner=not-connected");
+    failed += expect(" version ", 0, "AmiGuard AE 0.2.0-m2.4");
+    failed += expect("STATUS", 0, "READY M2.4 scanner=not-connected");
     failed += expect("RESULT.STATUS", 10, "ERROR no scan result");
-    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE CHECKSUM RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+    failed += expect("CHECKSUM", 10, "ERROR CHECKSUM requires path");
+    failed += expect("CHECKSUM build/checksum-fixture.bin", 0, "CRC32 CBF43926");
+    failed += expect("CHECKSUM build/missing.bin", 10, "ERROR cannot open file read-only");
     failed += expect("SCANFILE", 10, "ERROR SCANFILE requires path");
     failed += expect("SCANFILE clean.bin", 10, "ERROR scanner unavailable");
     failed += expect("RESULT.STATUS", 0, "ERROR");
@@ -48,7 +68,7 @@ int main(void)
     failed += expect("RESULT.STATUS", 10, "ERROR no scan result");
 
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS", 0, "READY M2.3 scanner=connected");
+    failed += expect("STATUS", 0, "READY M2.4 scanner=connected");
     failed += expect("SCANFILE clean.bin", 0, "CLEAN known-clean");
     failed += expect("RESULT.STATUS", 0, "CLEAN");
     failed += expect("RESULT.PATH", 0, "clean.bin");
@@ -61,7 +81,8 @@ int main(void)
     failed += expect("RESULT.UNKNOWN", 10, "ERROR unknown RESULT command");
     failed += expect("BOGUS", 10, "ERROR unknown command");
     failed += expect("", 10, "ERROR empty command");
+    remove("build/checksum-fixture.bin");
     if (failed != 0) return 1;
-    puts("M2.3 structured result qualification: PASS");
+    puts("M2.4 checksum qualification: PASS");
     return 0;
 }

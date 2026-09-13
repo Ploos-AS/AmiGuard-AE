@@ -5,6 +5,7 @@
 #include "amiguard_ae.h"
 #include "arexx_dispatch.h"
 #include "scanner_bridge.h"
+#include "signature_bridge.h"
 #include "result_store.h"
 #include "checksum.h"
 #include "identify.h"
@@ -114,6 +115,17 @@ static void dispatch_identify(const char *command, AmiGuardAERexxResult *out)
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
+static void dispatch_signature_count(AmiGuardAERexxResult *out)
+{
+    char text[AMIGUARD_AE_RESULT_MAX];
+    if (!amiguard_ae_signature_available()) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable");
+        return;
+    }
+    sprintf(text, "%lu", amiguard_ae_signature_count());
+    set_result(out, AMIGUARD_AE_RC_OK, text);
+}
+
 static void dispatch_result(const char *verb, AmiGuardAERexxResult *out)
 {
     if (strcmp(verb, "RESULT.CLEAR") == 0) {
@@ -154,11 +166,11 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
     } else if (strcmp(verb, "STATUS") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
                    amiguard_ae_scanner_available()
-                       ? "READY M2.6 scanner=connected"
-                       : "READY M2.6 scanner=not-connected");
+                       ? "READY M3.1 scanner=connected"
+                       : "READY M3.1 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
-                   "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+                   "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     } else if (strcmp(verb, "SCAN") == 0) {
         dispatch_scan_target(command, "SCAN", out);
     } else if (strcmp(verb, "SCANFILE") == 0) {
@@ -167,6 +179,8 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         dispatch_checksum(command, out);
     } else if (strcmp(verb, "IDENTIFY") == 0) {
         dispatch_identify(command, out);
+    } else if (strcmp(verb, "SIGNATURE.COUNT") == 0) {
+        dispatch_signature_count(out);
     } else if (strncmp(verb, "RESULT.", 7) == 0) {
         dispatch_result(verb, out);
     } else if (verb[0] == '\0') {

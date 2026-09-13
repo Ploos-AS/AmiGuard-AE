@@ -4,6 +4,7 @@
 
 static AmiGuardAESignatureCountProvider count_provider = 0;
 static AmiGuardAESignatureInfoProvider info_provider = 0;
+static AmiGuardAESignatureUpdateProvider update_provider = 0;
 
 #if defined(AMIGUARD_AE_WITH_AMIGUARD)
 #include "file_signatures.h"
@@ -64,6 +65,11 @@ void amiguard_ae_signature_set_info_provider(AmiGuardAESignatureInfoProvider pro
     info_provider = provider;
 }
 
+void amiguard_ae_signature_set_update_provider(AmiGuardAESignatureUpdateProvider provider)
+{
+    update_provider = provider;
+}
+
 int amiguard_ae_signature_available(void)
 {
     if (count_provider != 0) return 1;
@@ -72,6 +78,11 @@ int amiguard_ae_signature_available(void)
 #else
     return 0;
 #endif
+}
+
+int amiguard_ae_signature_update_available(void)
+{
+    return update_provider != 0;
 }
 
 unsigned long amiguard_ae_signature_count(void)
@@ -94,4 +105,11 @@ int amiguard_ae_signature_info(unsigned long index, AmiGuardAESignatureInfo *out
     (void)out;
     return 0;
 #endif
+}
+
+int amiguard_ae_signature_update(char *detail, unsigned long detail_size)
+{
+    if (detail != 0 && detail_size != 0UL) detail[0] = '\0';
+    if (update_provider == 0) return 0;
+    return update_provider(detail, detail_size);
 }

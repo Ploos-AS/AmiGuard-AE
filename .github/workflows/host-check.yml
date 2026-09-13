@@ -10,8 +10,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Host qualification
+        id: qualify
+        shell: bash
         run: |
-          make clean
-          make check
-          make
-          ./AmiGuardAE
+          set -o pipefail
+          {
+            make clean
+            make check
+            make
+            ./AmiGuardAE
+          } 2>&1 | tee host-check.log
+      - name: Upload qualification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-check-log
+          path: host-check.log

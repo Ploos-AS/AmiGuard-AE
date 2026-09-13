@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  m1-native-aros:
+  native-aros:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -30,11 +30,11 @@ jobs:
       - name: Gate B - execute AmiGuard AE inside AROS guest
         run: bash ci/fs-uae/run-aros-guest-smoke.sh
 
-      - name: Upload M1 qualification evidence
+      - name: Upload native qualification evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: m1-fs-uae-aros-qualification
+          name: fs-uae-aros-qualification
           path: |
             build/fs-uae/native/AmiGuardAE
             build/fs-uae/native/AmiGuardAE.sha256

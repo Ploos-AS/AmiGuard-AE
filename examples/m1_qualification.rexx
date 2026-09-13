@@ -1,0 +1,39 @@
+/* AmiGuard AE M1 runtime qualification */
+OPTIONS RESULTS
+ADDRESS AMIGUARD
+
+'PING'
+IF RC ~= 0 | RESULT ~= 'PONG' THEN DO
+  SAY 'FAIL PING rc='RC' result='RESULT
+  EXIT 10
+END
+
+'VERSION'
+IF RC ~= 0 THEN DO
+  SAY 'FAIL VERSION rc='RC
+  EXIT 10
+END
+SAY 'VERSION:' RESULT
+
+'STATUS'
+IF RC ~= 0 THEN DO
+  SAY 'FAIL STATUS rc='RC
+  EXIT 10
+END
+SAY 'STATUS:' RESULT
+
+'HELP'
+IF RC ~= 0 THEN DO
+  SAY 'FAIL HELP rc='RC
+  EXIT 10
+END
+SAY 'HELP:' RESULT
+
+'BOGUS'
+IF RC ~= 10 THEN DO
+  SAY 'FAIL unknown-command rc='RC
+  EXIT 10
+END
+
+SAY 'M1 ARexx runtime qualification: PASS'
+EXIT 0

@@ -30,7 +30,7 @@ rexxlib_host="$(find "$aros_root" -type f -iname 'rexxsyslib.library' -print -qu
 {
   echo "REXXMAST=${rexxmast_host:-MISSING}"
   echo "REXXSYSLIB=${rexxlib_host:-MISSING}"
-  echo "NOTE=AROS gate qualifies native 68k scanner/result core only; production ARexx transport remains a deferred local classic-AmigaOS gate"
+  echo "NOTE=AROS gate qualifies native 68k scanner/result/checksum core only; production ARexx transport remains a deferred local classic-AmigaOS gate"
 } > "$OUT_DIR/arexx-capabilities.txt"
 
 cp "$NATIVE" "$aros_root/AmiGuardAE"
@@ -38,15 +38,15 @@ cp "$startup" "$startup.amiguard-ae-original"
 
 cat > "$startup" <<'EOF'
 FailAt 21
-SYS:C/Echo "M2_3_GUEST_STARTED=1" >SYS:amiguard-ae-m2-3-started.txt
-SYS:C/Which AmiGuardAE >SYS:amiguard-ae-m2-3-which.txt
-SYS:C/Echo "M2_3_BEFORE_AMIGUARD_AE=1" >SYS:amiguard-ae-m2-3-before.txt
-SYS:AmiGuardAE >SYS:amiguard-ae-m2-3-output.txt
-SYS:C/Echo $RC >SYS:amiguard-ae-m2-3-rc.txt
-SYS:C/Echo "M2_3_AFTER_AMIGUARD_AE=1" >SYS:amiguard-ae-m2-3-after.txt
+SYS:C/Echo "M2_4_GUEST_STARTED=1" >SYS:amiguard-ae-m2-4-started.txt
+SYS:C/Which AmiGuardAE >SYS:amiguard-ae-m2-4-which.txt
+SYS:C/Echo "M2_4_BEFORE_AMIGUARD_AE=1" >SYS:amiguard-ae-m2-4-before.txt
+SYS:AmiGuardAE >SYS:amiguard-ae-m2-4-output.txt
+SYS:C/Echo $RC >SYS:amiguard-ae-m2-4-rc.txt
+SYS:C/Echo "M2_4_AFTER_AMIGUARD_AE=1" >SYS:amiguard-ae-m2-4-after.txt
 EOF
 
-rm -f "$aros_root"/amiguard-ae-m2-3-{started,which,before,output,rc,after}.txt
+rm -f "$aros_root"/amiguard-ae-m2-4-{started,which,before,output,rc,after}.txt
 
 config="$OUT_DIR/aros-guest.fs-uae"
 sed "s|@AROS_ROOT@|$PWD/$aros_root|" ci/fs-uae/aros-guest.fs-uae > "$config"
@@ -57,34 +57,35 @@ timeout 45s xvfb-run -a fs-uae "$config" > "$OUT_DIR/fs-uae.log" 2>&1
 rc=$?
 set -e
 
-started="$aros_root/amiguard-ae-m2-3-started.txt"
-which_file="$aros_root/amiguard-ae-m2-3-which.txt"
-output="$aros_root/amiguard-ae-m2-3-output.txt"
-guest_rc="$aros_root/amiguard-ae-m2-3-rc.txt"
-after="$aros_root/amiguard-ae-m2-3-after.txt"
-before="$aros_root/amiguard-ae-m2-3-before.txt"
+started="$aros_root/amiguard-ae-m2-4-started.txt"
+which_file="$aros_root/amiguard-ae-m2-4-which.txt"
+output="$aros_root/amiguard-ae-m2-4-output.txt"
+guest_rc="$aros_root/amiguard-ae-m2-4-rc.txt"
+after="$aros_root/amiguard-ae-m2-4-after.txt"
+before="$aros_root/amiguard-ae-m2-4-before.txt"
 status=FAIL
 observation=guest_result_missing
 
 if [[ -f "$started" && -f "$after" && -f "$output" && -f "$guest_rc" ]] \
    && grep -q '^0' "$guest_rc" \
-   && grep -q 'M2.3 AROS structured result smoke: PASS' "$output" \
+   && grep -q 'M2.4 AROS checksum smoke: PASS' "$output" \
    && grep -q 'SMOKE PASS PING => PONG' "$output" \
-   && grep -q 'SMOKE PASS STATUS => READY M2.3 scanner=connected' "$output" \
+   && grep -q 'SMOKE PASS STATUS => READY M2.4 scanner=connected' "$output" \
+   && grep -q 'SMOKE PASS CHECKSUM RAM:amiguard-ae-crc.bin => CRC32 CBF43926' "$output" \
    && grep -q 'SMOKE PASS RESULT.STATUS => ERROR no scan result' "$output" \
    && grep -q 'SMOKE PASS RESULT.CLEAR => OK' "$output" \
    && grep -q 'SMOKE PASS BOGUS => ERROR unknown command' "$output"; then
   status=PASS
-  observation=native_68k_structured_result_api_qualified_in_aros
+  observation=native_68k_checksum_api_qualified_in_aros
 elif [[ -f "$after" ]]; then
-  observation=guest_smoke_returned_without_expected_m2_3_evidence
+  observation=guest_smoke_returned_without_expected_m2_4_evidence
 elif [[ -f "$before" ]]; then
   observation=guest_entered_smoke_binary_but_did_not_return
 fi
 
 {
   echo "STATUS=$status"
-  echo "GATE=M2_3_AROS_STRUCTURED_RESULT_SMOKE"
+  echo "GATE=M2_4_AROS_CHECKSUM_SMOKE"
   echo "MODEL=A1200"
   echo "KICKSTART=internal"
   echo "AROS_ROOT=$aros_root"

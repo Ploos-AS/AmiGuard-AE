@@ -5,6 +5,10 @@
 static AmiGuardAESignatureCountProvider count_provider = 0;
 static AmiGuardAESignatureInfoProvider info_provider = 0;
 
+#if defined(AMIGUARD_AE_WITH_AMIGUARD)
+#include "file_signatures.h"
+#include "signatures.h"
+
 static void copy_text(char *dst, unsigned long size, const char *src)
 {
     if (size == 0UL) return;
@@ -12,10 +16,6 @@ static void copy_text(char *dst, unsigned long size, const char *src)
     strncpy(dst, src, (size_t)(size - 1UL));
     dst[size - 1UL] = '\0';
 }
-
-#if defined(AMIGUARD_AE_WITH_AMIGUARD)
-#include "file_signatures.h"
-#include "signatures.h"
 
 static unsigned long builtin_signature_count(void)
 {

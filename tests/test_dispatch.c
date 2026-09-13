@@ -36,19 +36,32 @@ int main(void)
     int failed = 0;
     failed += expect("PING", 0, "PONG");
     failed += expect(" version ", 0, "AmiGuard AE 0.1.0-m1");
-    failed += expect("STATUS", 0, "READY M2.2 scanner=not-connected");
-    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE");
+    failed += expect("STATUS", 0, "READY M2.3 scanner=not-connected");
+    failed += expect("RESULT.STATUS", 10, "ERROR no scan result");
+    failed += expect("HELP", 0, "PING VERSION STATUS HELP SCANFILE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     failed += expect("SCANFILE", 10, "ERROR SCANFILE requires path");
     failed += expect("SCANFILE clean.bin", 10, "ERROR scanner unavailable");
+    failed += expect("RESULT.STATUS", 0, "ERROR");
+    failed += expect("RESULT.PATH", 0, "clean.bin");
+    failed += expect("RESULT.DETAIL", 0, "scanner unavailable");
+    failed += expect("RESULT.CLEAR", 0, "OK");
+    failed += expect("RESULT.STATUS", 10, "ERROR no scan result");
 
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS", 0, "READY M2.2 scanner=connected");
+    failed += expect("STATUS", 0, "READY M2.3 scanner=connected");
     failed += expect("SCANFILE clean.bin", 0, "CLEAN known-clean");
+    failed += expect("RESULT.STATUS", 0, "CLEAN");
+    failed += expect("RESULT.PATH", 0, "clean.bin");
+    failed += expect("RESULT.DETAIL", 0, "known-clean");
     failed += expect("SCANFILE virus.bin", 5, "INFECTED Test.Virus");
+    failed += expect("RESULT.STATUS", 0, "INFECTED");
+    failed += expect("RESULT.DETAIL", 0, "Test.Virus");
     failed += expect("SCANFILE sample.bin", 5, "SUSPICIOUS needs-analysis");
+    failed += expect("RESULT.STATUS", 0, "SUSPICIOUS");
+    failed += expect("RESULT.UNKNOWN", 10, "ERROR unknown RESULT command");
     failed += expect("BOGUS", 10, "ERROR unknown command");
     failed += expect("", 10, "ERROR empty command");
     if (failed != 0) return 1;
-    puts("M2.2 scanner bridge qualification: PASS");
+    puts("M2.3 structured result qualification: PASS");
     return 0;
 }

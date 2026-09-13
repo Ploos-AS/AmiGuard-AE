@@ -47,7 +47,8 @@ int main(void)
     if (!write_file("RAM:amiguard-ae-hunk.bin", hunk_data, 4UL)) return AMIGUARD_AE_RC_FAIL;
 
     ok = expect("PING", AMIGUARD_AE_RC_OK, "PONG") && ok;
-    ok = expect("STATUS", AMIGUARD_AE_RC_OK, "READY M2.6 scanner=connected") && ok;
+    ok = expect("STATUS", AMIGUARD_AE_RC_OK, "READY M3.1 scanner=connected") && ok;
+    ok = expect("SIGNATURE.COUNT", AMIGUARD_AE_RC_OK, "4") && ok;
     ok = expect("SCAN", AMIGUARD_AE_RC_ERROR, "ERROR SCAN requires path") && ok;
     ok = expect_prefix("SCAN RAM:amiguard-ae-crc.bin", AMIGUARD_AE_RC_OK, "CLEAN ") && ok;
     ok = expect("RESULT.STATUS", AMIGUARD_AE_RC_OK, "CLEAN") && ok;
@@ -60,6 +61,6 @@ int main(void)
     remove("RAM:amiguard-ae-crc.bin");
     remove("RAM:amiguard-ae-hunk.bin");
     if (!ok) return AMIGUARD_AE_RC_FAIL;
-    puts("M2.6 AROS scan smoke: PASS");
+    puts("M3.1 AROS signature count smoke: PASS");
     return AMIGUARD_AE_RC_OK;
 }

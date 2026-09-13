@@ -1,4 +1,5 @@
 #include "arexx_amiga.h"
+#include <stddef.h>
 
 #if defined(__AMIGA__)
 

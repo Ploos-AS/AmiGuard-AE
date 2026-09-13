@@ -6,6 +6,7 @@
 #include "arexx_dispatch.h"
 #include "scanner_bridge.h"
 #include "result_store.h"
+#include "checksum.h"
 
 static void trim_upper_token(const char *command, char *token, unsigned long size)
 {
@@ -66,6 +67,27 @@ static void dispatch_scanfile(const char *command, AmiGuardAERexxResult *out)
     }
 }
 
+static void dispatch_checksum(const char *command, AmiGuardAERexxResult *out)
+{
+    const char *path = command_argument(command);
+    AmiGuardAEChecksumResult checksum;
+    char text[AMIGUARD_AE_RESULT_MAX];
+
+    if (*path == '\0') {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR CHECKSUM requires path");
+        return;
+    }
+
+    if (!amiguard_ae_checksum_crc32(path, &checksum)) {
+        sprintf(text, "ERROR %s", checksum.detail);
+        set_result(out, AMIGUARD_AE_RC_ERROR, text);
+        return;
+    }
+
+    sprintf(text, "CRC32 %s", checksum.checksum);
+    set_result(out, AMIGUARD_AE_RC_OK, text);
+}
+
 static void dispatch_result(const char *verb, AmiGuardAERexxResult *out)
 {
     if (strcmp(verb, "RESULT.CLEAR") == 0) {
@@ -103,11 +125,13 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         set_result(out, AMIGUARD_AE_RC_OK, version);
     } else if (strcmp(verb, "STATUS") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
-                   amiguard_ae_scanner_available() ? "READY M2.3 scanner=connected" : "READY M2.3 scanner=not-connected");
+                   amiguard_ae_scanner_available() ? "READY M2.4 scanner=connected" : "READY M2.4 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+        set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCANFILE CHECKSUM RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     } else if (strcmp(verb, "SCANFILE") == 0) {
         dispatch_scanfile(command, out);
+    } else if (strcmp(verb, "CHECKSUM") == 0) {
+        dispatch_checksum(command, out);
     } else if (strncmp(verb, "RESULT.", 7) == 0) {
         dispatch_result(verb, out);
     } else if (verb[0] == '\0') {

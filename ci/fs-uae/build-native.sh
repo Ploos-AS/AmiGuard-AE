@@ -22,11 +22,29 @@ docker image inspect "$IMAGE" --format '{{join .RepoDigests "\n"}}' | tee "$OUT_
 ED25519_SOURCES=("$ED25519_DIR/src/verify.c" "$ED25519_DIR/src/sha512.c" "$ED25519_DIR/src/ge.c" "$ED25519_DIR/src/fe.c" "$ED25519_DIR/src/sc.c")
 COMMON_SOURCES=(src/core.c src/arexx_dispatch.c src/scanner_bridge.c src/signature_bridge.c src/signature_manifest.c src/signature_auth_ed25519.c src/result_store.c src/checksum.c src/identify.c "$AMIGUARD_DIR/src/file_intake.c" "$AMIGUARD_DIR/src/file_signatures.c" "$AMIGUARD_DIR/src/hunk.c" "$AMIGUARD_DIR/src/signatures.c" "${ED25519_SOURCES[@]}")
 COMMON_FLAGS=(-DAMIGUARD_AE_WITH_AMIGUARD=1 -DAMIGUARD_AE_WITH_ED25519=1 -Iinclude -Isrc -I"$AMIGUARD_DIR/src" -I"$ED25519_DIR/src" -Os -Wall -Wextra -Werror -m68000)
+TRUST_FLAGS=(-DAMIGUARD_AE_TRUSTED_KEY_ID=\"$CI_KEY_ID\" -DAMIGUARD_AE_TRUSTED_PUBLIC_KEY_HEX=\"$CI_KEY_HEX\")
+
+# Production default: no trusted key provisioned. Authentication therefore fails closed.
 docker run --rm -v "$PWD:/work" -w /work "$IMAGE" m68k-amigaos-gcc "${COMMON_FLAGS[@]}" -o AmiGuardAE.amiga src/main.c src/arexx_amiga.c "${COMMON_SOURCES[@]}" -mcrt=nix20
-docker run --rm -v "$PWD:/work" -w /work "$IMAGE" m68k-amigaos-gcc "${COMMON_FLAGS[@]}" -DAMIGUARD_AE_TRUSTED_KEY_ID=\"$CI_KEY_ID\" -DAMIGUARD_AE_TRUSTED_PUBLIC_KEY_HEX=\"$CI_KEY_HEX\" -o AmiGuardAE-aros-smoke.amiga ci/fs-uae/aros_smoke_main.c "${COMMON_SOURCES[@]}" -mcrt=nix20
-cp AmiGuardAE.amiga "$OUT_DIR/AmiGuardAE"; cp AmiGuardAE-aros-smoke.amiga "$OUT_DIR/AmiGuardAE-aros-smoke"
-file "$OUT_DIR/AmiGuardAE" | tee "$OUT_DIR/file.txt"; file "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/aros-smoke-file.txt"
-sha256sum "$OUT_DIR/AmiGuardAE" | tee "$OUT_DIR/AmiGuardAE.sha256"; sha256sum "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/AmiGuardAE-aros-smoke.sha256"
+
+# Production-shaped trust-provisioning qualification binary. Uses a public CI-only key,
+# never a release/private key, and proves that the same full binary can be built with
+# an explicitly provisioned Ed25519 trust root.
+docker run --rm -v "$PWD:/work" -w /work "$IMAGE" m68k-amigaos-gcc "${COMMON_FLAGS[@]}" "${TRUST_FLAGS[@]}" -o AmiGuardAE-trusted-ci.amiga src/main.c src/arexx_amiga.c "${COMMON_SOURCES[@]}" -mcrt=nix20
+
+# Guest smoke uses the same CI trust root and exercises authenticated update semantics.
+docker run --rm -v "$PWD:/work" -w /work "$IMAGE" m68k-amigaos-gcc "${COMMON_FLAGS[@]}" "${TRUST_FLAGS[@]}" -o AmiGuardAE-aros-smoke.amiga ci/fs-uae/aros_smoke_main.c "${COMMON_SOURCES[@]}" -mcrt=nix20
+
+cp AmiGuardAE.amiga "$OUT_DIR/AmiGuardAE"
+cp AmiGuardAE-trusted-ci.amiga "$OUT_DIR/AmiGuardAE-trusted-ci"
+cp AmiGuardAE-aros-smoke.amiga "$OUT_DIR/AmiGuardAE-aros-smoke"
+file "$OUT_DIR/AmiGuardAE" | tee "$OUT_DIR/file.txt"
+file "$OUT_DIR/AmiGuardAE-trusted-ci" | tee "$OUT_DIR/trusted-ci-file.txt"
+file "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/aros-smoke-file.txt"
+sha256sum "$OUT_DIR/AmiGuardAE" | tee "$OUT_DIR/AmiGuardAE.sha256"
+sha256sum "$OUT_DIR/AmiGuardAE-trusted-ci" | tee "$OUT_DIR/AmiGuardAE-trusted-ci.sha256"
+sha256sum "$OUT_DIR/AmiGuardAE-aros-smoke" | tee "$OUT_DIR/AmiGuardAE-aros-smoke.sha256"
 if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/file.txt"; then exit 1; fi
+if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/trusted-ci-file.txt"; then exit 1; fi
 if ! grep -Eiq 'AmigaOS|Amiga.*executable|loadseg' "$OUT_DIR/aros-smoke-file.txt"; then exit 1; fi
-printf 'STATUS=PASS\nGATE=M3_8B_NATIVE_ED25519_BUILD\nIMAGE=%s\nAMIGUARD_COMMIT=%s\nED25519_COMMIT=%s\nPRODUCTION_BINARY=%s\nAROS_SMOKE_BINARY=%s\nPRODUCTION_TRUST_KEY=NOT_PROVISIONED_FAIL_CLOSED\nAROS_TEST_TRUST_KEY=%s\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' "$IMAGE" "$AMIGUARD_COMMIT" "$ED25519_COMMIT" "$OUT_DIR/AmiGuardAE" "$OUT_DIR/AmiGuardAE-aros-smoke" "$CI_KEY_ID" | tee "$OUT_DIR/result.txt"
+printf 'STATUS=PASS\nGATE=M3_10_PRODUCTION_TRUST_PROVISIONING_BUILD\nIMAGE=%s\nAMIGUARD_COMMIT=%s\nED25519_COMMIT=%s\nPRODUCTION_BINARY=%s\nTRUSTED_CI_BINARY=%s\nAROS_SMOKE_BINARY=%s\nPRODUCTION_TRUST_KEY=NOT_PROVISIONED_FAIL_CLOSED\nTRUST_PROVISIONING_PATH=QUALIFIED_WITH_PUBLIC_CI_KEY\nCI_TRUST_KEY_ID=%s\nPRIVATE_SIGNING_KEY=NEVER_EMBEDDED\nAREXX_RUNTIME_QUALIFICATION=DEFERRED_LOCAL_CLASSIC_AMIGAOS\n' "$IMAGE" "$AMIGUARD_COMMIT" "$ED25519_COMMIT" "$OUT_DIR/AmiGuardAE" "$OUT_DIR/AmiGuardAE-trusted-ci" "$OUT_DIR/AmiGuardAE-aros-smoke" "$CI_KEY_ID" | tee "$OUT_DIR/result.txt"

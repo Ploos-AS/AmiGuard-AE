@@ -79,17 +79,38 @@ Current M2 command surface:
 
 ## M3 - Signature automation
 
-Status: **next**.
+Status: **complete for implementation and automated native-core qualification; classic AmigaOS ARexx transport qualification remains deferred with M1**.
 
-- `SIGNATURE.INFO`, `SIGNATURE.COUNT`, update/status operations.
-- Stable machine-readable result variables.
-- Regression tests against AmiGuard signature semantics.
+Implemented and automated-qualified:
+
+- `SIGNATURE.COUNT` and indexed `SIGNATURE.INFO` over AmiGuard-compatible signatures.
+- Runtime signature database loading through `SIGNATURE.UPDATE`.
+- `SIGNATURE.STATUS` with update, integrity and authentication capability reporting.
+- CRC32 integrity verification before activation.
+- Strict signed-manifest contract and canonical payload.
+- Ed25519 manifest authentication using a pinned established verifier.
+- Fail-closed behavior when no trusted public key is provisioned.
+- Sequence anti-replay/rollback protection within the running process.
+- Host-side manifest signing/provisioning tools; private keys are never part of the runtime build.
+- Production-shaped trusted-key 68000 build gate with explicit KEYID/public-key provisioning.
+- Host, Bebbo 68000 and FS-UAE/AROS automated qualification.
+
+Security boundary at M3 closeout:
+
+- CRC32 is an integrity check, not authentication.
+- Ed25519 is the authenticity gate for trusted signature updates.
+- Production builds without an explicitly provisioned trusted public key reject authenticated updates.
+- Sequence rollback state is currently process-local; durable reboot-resistant anti-rollback remains future hardening and must not be claimed by M3.
 
 ## M4 - Quarantine and policy
+
+Status: **next**.
 
 - `QUARANTINE`, `RESTORE` and policy/configuration API.
 - Safe-path and destructive-action guards.
 - Audit/logging interface.
+- Define deterministic quarantine identifiers and metadata before destructive file operations are enabled.
+- Preserve fail-safe behavior: a failed quarantine operation must not silently destroy or overwrite the source.
 
 ## M5 - Events and ecosystem integration
 

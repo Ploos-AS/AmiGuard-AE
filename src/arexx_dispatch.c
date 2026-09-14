@@ -134,7 +134,11 @@ static void dispatch_signature_status(const char *command, AmiGuardAERexxResult 
         set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable");
         return;
     }
-    sprintf(text, "READY COUNT=%lu UPDATE=%s VERIFY=CRC32", amiguard_ae_signature_count(), amiguard_ae_signature_update_available() ? "AVAILABLE" : "UNAVAILABLE");
+    sprintf(text,
+            "READY COUNT=%lu UPDATE=%s VERIFY=CRC32 AUTH=%s",
+            amiguard_ae_signature_count(),
+            amiguard_ae_signature_update_available() ? "AVAILABLE" : "UNAVAILABLE",
+            amiguard_ae_signature_auth_available() ? "AVAILABLE" : "UNAVAILABLE");
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
@@ -184,55 +188,57 @@ static int valid_crc32_text(const char *text)
     return 1;
 }
 
+static int next_token(const char **cursor, char *out, unsigned long out_size)
+{
+    const char *p = *cursor;
+    const char *start;
+    unsigned long n;
+    while (*p != '\0' && isspace((unsigned char)*p))
+        ++p;
+    start = p;
+    while (*p != '\0' && !isspace((unsigned char)*p))
+        ++p;
+    n = (unsigned long)(p - start);
+    if (n == 0UL || n >= out_size)
+        return 0;
+    memcpy(out, start, (size_t)n);
+    out[n] = '\0';
+    *cursor = p;
+    return 1;
+}
+
 static void dispatch_signature_update(const char *command, AmiGuardAERexxResult *out)
 {
-    const char *arg = command_argument(command);
-    const char *p;
-    unsigned long n;
+    const char *cursor = command_argument(command);
     char path[256];
     char expected[9];
+    char manifest[256];
     AmiGuardAEChecksumResult checksum;
     char detail[AMIGUARD_AE_SIGNATURE_UPDATE_DETAIL_MAX];
     char text[AMIGUARD_AE_RESULT_MAX];
     unsigned int i;
-    if (*arg == '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE requires path and CRC32");
+
+    if (!next_token(&cursor, path, sizeof(path))) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE requires path CRC32 manifest");
         return;
     }
-    p = arg;
-    while (*p != '\0' && !isspace((unsigned char)*p))
-        ++p;
-    n = (unsigned long)(p - arg);
-    if (n == 0UL || n >= sizeof(path)) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid signature database path");
+    if (!next_token(&cursor, expected, sizeof(expected))) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE requires CRC32 and manifest");
         return;
     }
-    memcpy(path, arg, (size_t)n);
-    path[n] = '\0';
-    while (*p != '\0' && isspace((unsigned char)*p))
-        ++p;
-    if (*p == '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE requires CRC32");
+    if (!next_token(&cursor, manifest, sizeof(manifest))) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE requires manifest");
         return;
     }
-    arg = p;
-    while (*p != '\0' && !isspace((unsigned char)*p))
-        ++p;
-    n = (unsigned long)(p - arg);
-    if (n != 8UL) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid CRC32");
-        return;
-    }
-    memcpy(expected, arg, 8U);
-    expected[8] = '\0';
-    while (*p != '\0' && isspace((unsigned char)*p))
-        ++p;
-    if (*p != '\0' || !valid_crc32_text(expected)) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid CRC32");
+    while (*cursor != '\0' && isspace((unsigned char)*cursor))
+        ++cursor;
+    if (*cursor != '\0' || !valid_crc32_text(expected)) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid SIGNATURE.UPDATE arguments");
         return;
     }
     for (i = 0U; i < 8U; ++i)
         expected[i] = (char)toupper((unsigned char)expected[i]);
+
     if (!amiguard_ae_signature_update_available()) {
         set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature updater unavailable");
         return;
@@ -247,6 +253,17 @@ static void dispatch_signature_update(const char *command, AmiGuardAERexxResult 
         set_result(out, AMIGUARD_AE_RC_ERROR, text);
         return;
     }
+    if (!amiguard_ae_signature_auth_available()) {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature authenticator unavailable");
+        return;
+    }
+    if (!amiguard_ae_signature_authenticate(manifest, path, expected, detail, sizeof(detail))) {
+        if (detail[0] == '\0')
+            strcpy(detail, "authentication failed");
+        sprintf(text, "ERROR %s", detail);
+        set_result(out, AMIGUARD_AE_RC_ERROR, text);
+        return;
+    }
     if (!amiguard_ae_signature_update(path, detail, sizeof(detail))) {
         if (detail[0] == '\0')
             strcpy(detail, "update failed");
@@ -256,7 +273,7 @@ static void dispatch_signature_update(const char *command, AmiGuardAERexxResult 
     }
     if (detail[0] == '\0')
         strcpy(detail, "updated");
-    sprintf(text, "UPDATED VERIFIED=CRC32 %s", detail);
+    sprintf(text, "UPDATED VERIFIED=CRC32 AUTH=OK %s", detail);
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
@@ -296,7 +313,7 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         sprintf(version, "%s %s", AMIGUARD_AE_NAME, amiguard_ae_version_string());
         set_result(out, AMIGUARD_AE_RC_OK, version);
     } else if (strcmp(verb, "STATUS") == 0)
-        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_scanner_available() ? "READY M3.6 scanner=connected" : "READY M3.6 scanner=not-connected");
+        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_scanner_available() ? "READY M3.7 scanner=connected" : "READY M3.7 scanner=not-connected");
     else if (strcmp(verb, "HELP") == 0)
         set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.STATUS SIGNATURE.INFO SIGNATURE.UPDATE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     else if (strcmp(verb, "SCAN") == 0)

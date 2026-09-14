@@ -104,13 +104,52 @@ Security boundary at M3 closeout:
 
 ## M4 - Quarantine and policy
 
-Status: **next**.
+Status: **in progress**.
 
-- `QUARANTINE`, `RESTORE` and policy/configuration API.
-- Safe-path and destructive-action guards.
-- Audit/logging interface.
-- Define deterministic quarantine identifiers and metadata before destructive file operations are enabled.
-- Preserve fail-safe behavior: a failed quarantine operation must not silently destroy or overwrite the source.
+### M4.1 - Quarantine safety model
+
+Status: **complete and automated-qualified**.
+
+- Safe-path guards.
+- Deterministic quarantine IDs.
+- Source CRC32 and size capture.
+- Explicitly non-destructive planning boundary.
+
+### M4.2 - Transactional quarantine store
+
+Status: **implementation complete; automated qualification pending**.
+
+- Stage source into a per-object temporary file.
+- Verify staged CRC32 against the plan.
+- Commit the verified quarantine object.
+- Commit per-object metadata before source removal.
+- Remove the source only after quarantine commit succeeds.
+- Refuse an existing quarantine destination.
+- Preserve the source on staging, verification or metadata failure.
+- Report source-removal-pending separately when commit succeeds but source deletion fails.
+
+M4.2 deliberately does not expose `QUARANTINE` through ARexx yet and does not implement restore.
+
+### M4.3 - ARexx quarantine command
+
+Next after M4.2 qualification:
+
+- `QUARANTINE <path>`
+- deterministic result/return semantics
+- policy checks before invoking the mutating backend
+
+### M4.4 - Restore and policy
+
+- `RESTORE <id>`
+- refuse silent overwrite of an existing destination
+- safe destination/path rules
+- explicit policy/configuration interface
+
+### M4.5 - Audit/logging
+
+- durable audit records
+- scan/quarantine/restore/signature-update events
+- deterministic machine-readable status
 
 ## M5 - Events and ecosystem integration
 

@@ -20,17 +20,16 @@ static int exists(const char *path)
 int main(void)
 {
     const char *source = "build/m4_2_source.bin";
-    const char *metadata = "build/quarantine.meta";
     char destination[AMIGUARD_AE_QUARANTINE_PATH_MAX];
+    char metadata[AMIGUARD_AE_QUARANTINE_PATH_MAX];
+    char stage[AMIGUARD_AE_QUARANTINE_PATH_MAX];
+    char metadata_stage[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     FILE *fp;
     AmiGuardAEQuarantinePlan plan;
     char detail[AMIGUARD_AE_QUARANTINE_DETAIL_MAX];
     char stored[AMIGUARD_AE_QUARANTINE_PATH_MAX];
 
     remove(source);
-    remove(metadata);
-    remove("build/.amiguard-stage");
-    remove("build/.quarantine.meta.stage");
 
     fp = fopen(source, "wb");
     if (fp == 0) return fail("source create");
@@ -43,6 +42,14 @@ int main(void)
     if (!amiguard_ae_quarantine_plan(source, &plan, detail, sizeof(detail)))
         return fail("plan");
     sprintf(destination, "build/%s.qtn", plan.id);
+    sprintf(metadata, "build/%s.meta", plan.id);
+    sprintf(stage, "build/.%s.stage", plan.id);
+    sprintf(metadata_stage, "build/.%s.meta.stage", plan.id);
+    remove(destination);
+    remove(metadata);
+    remove(stage);
+    remove(metadata_stage);
+
     if (!amiguard_ae_quarantine_store(&plan, "build", stored, sizeof(stored), detail, sizeof(detail)))
         return fail(detail);
     if (exists(source)) return fail("source still exists after successful commit");
@@ -51,6 +58,8 @@ int main(void)
 
     remove(stored);
     remove(metadata);
+    remove(stage);
+    remove(metadata_stage);
 
     /* Existing destinations must never be overwritten. */
     fp = fopen(source, "wb");
@@ -63,6 +72,12 @@ int main(void)
     if (!amiguard_ae_quarantine_plan(source, &plan, detail, sizeof(detail)))
         return fail("second plan");
     sprintf(destination, "build/%s.qtn", plan.id);
+    sprintf(metadata, "build/%s.meta", plan.id);
+    sprintf(stage, "build/.%s.stage", plan.id);
+    sprintf(metadata_stage, "build/.%s.meta.stage", plan.id);
+    remove(metadata);
+    remove(stage);
+    remove(metadata_stage);
     fp = fopen(destination, "wb");
     if (fp == 0) return fail("destination fixture create");
     if (fwrite("keep", 1, 4, fp) != 4) {
@@ -77,8 +92,8 @@ int main(void)
     remove(source);
     remove(destination);
     remove(metadata);
-    remove("build/.amiguard-stage");
-    remove("build/.quarantine.meta.stage");
+    remove(stage);
+    remove(metadata_stage);
     printf("M4.2 transactional quarantine qualification: PASS\n");
     return 0;
 }

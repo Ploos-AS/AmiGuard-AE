@@ -20,14 +20,14 @@ static int exists(const char *path)
 int main(void)
 {
     const char *source = "build/m4_2_source.bin";
-    const char *destination = "build/Q9D2C4F3A0000017.qtn";
     const char *metadata = "build/quarantine.meta";
+    char destination[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     FILE *fp;
     AmiGuardAEQuarantinePlan plan;
     char detail[AMIGUARD_AE_QUARANTINE_DETAIL_MAX];
     char stored[AMIGUARD_AE_QUARANTINE_PATH_MAX];
 
-    remove(destination);
+    remove(source);
     remove(metadata);
     remove("build/.amiguard-stage");
     remove("build/.quarantine.meta.stage");
@@ -42,11 +42,15 @@ int main(void)
 
     if (!amiguard_ae_quarantine_plan(source, &plan, detail, sizeof(detail)))
         return fail("plan");
+    sprintf(destination, "build/%s.qtn", plan.id);
     if (!amiguard_ae_quarantine_store(&plan, "build", stored, sizeof(stored), detail, sizeof(detail)))
         return fail(detail);
     if (exists(source)) return fail("source still exists after successful commit");
     if (!exists(stored)) return fail("quarantine object missing");
     if (!exists(metadata)) return fail("metadata missing");
+
+    remove(stored);
+    remove(metadata);
 
     /* Existing destinations must never be overwritten. */
     fp = fopen(source, "wb");
@@ -58,6 +62,14 @@ int main(void)
     fclose(fp);
     if (!amiguard_ae_quarantine_plan(source, &plan, detail, sizeof(detail)))
         return fail("second plan");
+    sprintf(destination, "build/%s.qtn", plan.id);
+    fp = fopen(destination, "wb");
+    if (fp == 0) return fail("destination fixture create");
+    if (fwrite("keep", 1, 4, fp) != 4) {
+        fclose(fp);
+        return fail("destination fixture write");
+    }
+    fclose(fp);
     if (amiguard_ae_quarantine_store(&plan, "build", stored, sizeof(stored), detail, sizeof(detail)))
         return fail("existing destination accepted");
     if (!exists(source)) return fail("source destroyed on rejected overwrite");

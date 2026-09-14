@@ -191,19 +191,19 @@ static void dispatch_signature_info(const char *command, AmiGuardAERexxResult *o
 
 static void dispatch_signature_update(const char *command, AmiGuardAERexxResult *out)
 {
-    const char *arg = command_argument(command);
+    const char *path = command_argument(command);
     char detail[AMIGUARD_AE_SIGNATURE_UPDATE_DETAIL_MAX];
     char text[AMIGUARD_AE_RESULT_MAX];
 
-    if (*arg != '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE takes no arguments");
+    if (*path == '\0') {
+        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE requires path");
         return;
     }
     if (!amiguard_ae_signature_update_available()) {
         set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature updater unavailable");
         return;
     }
-    if (!amiguard_ae_signature_update(detail, sizeof(detail))) {
+    if (!amiguard_ae_signature_update(path, detail, sizeof(detail))) {
         if (detail[0] == '\0') strcpy(detail, "update failed");
         sprintf(text, "ERROR %s", detail);
         set_result(out, AMIGUARD_AE_RC_ERROR, text);
@@ -255,8 +255,8 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
     } else if (strcmp(verb, "STATUS") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
                    amiguard_ae_scanner_available()
-                       ? "READY M3.4 scanner=connected"
-                       : "READY M3.4 scanner=not-connected");
+                       ? "READY M3.5 scanner=connected"
+                       : "READY M3.5 scanner=not-connected");
     } else if (strcmp(verb, "HELP") == 0) {
         set_result(out, AMIGUARD_AE_RC_OK,
                    "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.STATUS SIGNATURE.INFO SIGNATURE.UPDATE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");

@@ -5,6 +5,7 @@
 static AmiGuardAESignatureCountProvider count_provider = 0;
 static AmiGuardAESignatureInfoProvider info_provider = 0;
 static AmiGuardAESignatureUpdateProvider update_provider = 0;
+static AmiGuardAESignatureAuthProvider auth_provider = 0;
 
 #if defined(AMIGUARD_AE_WITH_AMIGUARD)
 #include "file_signatures.h"
@@ -83,6 +84,11 @@ void amiguard_ae_signature_set_update_provider(AmiGuardAESignatureUpdateProvider
     update_provider = provider;
 }
 
+void amiguard_ae_signature_set_auth_provider(AmiGuardAESignatureAuthProvider provider)
+{
+    auth_provider = provider;
+}
+
 int amiguard_ae_signature_available(void)
 {
     if (count_provider != 0)
@@ -103,6 +109,11 @@ int amiguard_ae_signature_update_available(void)
 #else
     return 0;
 #endif
+}
+
+int amiguard_ae_signature_auth_available(void)
+{
+    return auth_provider != 0;
 }
 
 unsigned long amiguard_ae_signature_count(void)
@@ -127,6 +138,19 @@ int amiguard_ae_signature_info(unsigned long index, AmiGuardAESignatureInfo *out
     (void)out;
     return 0;
 #endif
+}
+
+int amiguard_ae_signature_authenticate(const char *manifest_path,
+                                       const char *database_path,
+                                       const char *crc32,
+                                       char *detail,
+                                       unsigned long detail_size)
+{
+    if (detail != 0 && detail_size != 0UL)
+        detail[0] = '\0';
+    if (auth_provider == 0)
+        return 0;
+    return auth_provider(manifest_path, database_path, crc32, detail, detail_size);
 }
 
 int amiguard_ae_signature_update(const char *path,

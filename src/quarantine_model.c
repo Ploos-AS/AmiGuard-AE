@@ -72,7 +72,7 @@ int amiguard_ae_quarantine_plan(const char *path,
         set_detail(detail, detail_size, sum.detail);
         return 0;
     }
-    if (sscanf(sum.checksum, "CRC32 %lx", &crc) != 1) {
+    if (sscanf(sum.checksum, "%lx", &crc) != 1) {
         set_detail(detail, detail_size, "checksum parse failed");
         return 0;
     }

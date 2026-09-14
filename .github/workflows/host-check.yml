@@ -16,7 +16,9 @@ jobs:
           set -o pipefail
           {
             make clean
+            make deps-ed25519
             make check
+            make crypto-check
             make
             ./AmiGuardAE
           } 2>&1 | tee host-check.log

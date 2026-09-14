@@ -32,6 +32,7 @@ void amiguard_ae_signature_set_auth_provider(AmiGuardAESignatureAuthProvider pro
 int amiguard_ae_signature_available(void);
 int amiguard_ae_signature_update_available(void);
 int amiguard_ae_signature_auth_available(void);
+const char *amiguard_ae_signature_auth_method(void);
 unsigned long amiguard_ae_signature_count(void);
 int amiguard_ae_signature_info(unsigned long index, AmiGuardAESignatureInfo *out);
 int amiguard_ae_signature_authenticate(const char *manifest_path,

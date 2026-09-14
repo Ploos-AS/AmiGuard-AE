@@ -4,9 +4,10 @@ AMIGA_CC ?= m68k-amigaos-gcc
 AMIGA_CFLAGS ?= -m68000 -Os -Wall -Wextra -Iinclude -Isrc
 
 TARGET := AmiGuardAE
-HOST_SOURCES := src/main.c src/core.c src/arexx_dispatch.c src/arexx_amiga.c src/scanner_bridge.c src/signature_bridge.c src/result_store.c src/checksum.c src/identify.c
+HOST_SOURCES := src/main.c src/core.c src/arexx_dispatch.c src/arexx_amiga.c src/scanner_bridge.c src/signature_bridge.c src/signature_manifest.c src/result_store.c src/checksum.c src/identify.c
 AMIGA_SOURCES := $(HOST_SOURCES)
 TEST_TARGET := build/test_dispatch
+MANIFEST_TEST_TARGET := build/test_signature_manifest
 
 .PHONY: all host amiga check test clean
 
@@ -14,7 +15,7 @@ all: host
 
 host: $(TARGET)
 
-$(TARGET): $(HOST_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/arexx_amiga.h src/scanner_bridge.h src/signature_bridge.h src/result_store.h src/checksum.h src/identify.h
+$(TARGET): $(HOST_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/arexx_amiga.h src/scanner_bridge.h src/signature_bridge.h src/signature_manifest.h src/result_store.h src/checksum.h src/identify.h
 	$(HOST_CC) $(HOST_CFLAGS) $(HOST_SOURCES) -o $@
 
 amiga:
@@ -24,8 +25,13 @@ $(TEST_TARGET): tests/test_dispatch.c src/core.c src/arexx_dispatch.c src/scanne
 	@mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) tests/test_dispatch.c src/core.c src/arexx_dispatch.c src/scanner_bridge.c src/signature_bridge.c src/result_store.c src/checksum.c src/identify.c -o $(TEST_TARGET)
 
-test: $(TEST_TARGET)
+$(MANIFEST_TEST_TARGET): tests/test_signature_manifest.c src/signature_manifest.c src/signature_manifest.h
+	@mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) tests/test_signature_manifest.c src/signature_manifest.c -o $(MANIFEST_TEST_TARGET)
+
+test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET)
 	./$(TEST_TARGET)
+	./$(MANIFEST_TEST_TARGET)
 
 check: test
 	@test -f README.md
@@ -39,6 +45,8 @@ check: test
 	@test -f src/arexx_amiga.c
 	@test -f src/scanner_bridge.c
 	@test -f src/signature_bridge.c
+	@test -f src/signature_manifest.c
+	@test -f src/signature_manifest.h
 	@test -f src/result_store.c
 	@test -f src/checksum.c
 	@test -f src/identify.c
@@ -46,7 +54,7 @@ check: test
 	@grep -q 'AMIGUARD_AE_AREXX_PORT "AMIGUARD"' include/amiguard_ae.h
 	@grep -q 'm68k-amigaos-gcc' Makefile
 	@grep -q -- '-m68000' Makefile
-	@echo "M3.2 host qualification: PASS"
+	@echo "M3.8a host qualification: PASS"
 
 clean:
 	$(RM) -r $(TARGET) $(TARGET).amiga build

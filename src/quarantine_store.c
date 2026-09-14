@@ -18,17 +18,19 @@ int amiguard_ae_quarantine_set_directory(const char *directory,
                                          char *detail,
                                          unsigned long detail_size)
 {
+    unsigned long length;
     if (directory == 0 || directory[0] == '\0') {
         quarantine_directory[0] = '\0';
         detail_set(detail, detail_size, "quarantine directory cleared; quarantine disabled");
         return 1;
     }
-    if (strlen(directory) >= sizeof(quarantine_directory)) {
+    length = (unsigned long)strlen(directory);
+    if (length >= sizeof(quarantine_directory)) {
         detail_set(detail, detail_size, "quarantine directory path too long");
         return 0;
     }
     if (strcmp(directory, "/") == 0 || strcmp(directory, ".") == 0 ||
-        strcmp(directory, "..") == 0) {
+        strcmp(directory, "..") == 0 || directory[length - 1UL] == ':') {
         detail_set(detail, detail_size, "unsafe quarantine directory");
         return 0;
     }

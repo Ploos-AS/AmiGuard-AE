@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "signature_bridge.h"
+#include "signature_auth_ed25519.h"
 
 static AmiGuardAESignatureCountProvider count_provider = 0;
 static AmiGuardAESignatureInfoProvider info_provider = 0;
@@ -113,7 +114,9 @@ int amiguard_ae_signature_update_available(void)
 
 int amiguard_ae_signature_auth_available(void)
 {
-    return auth_provider != 0;
+    if (auth_provider != 0)
+        return 1;
+    return amiguard_ae_ed25519_auth_available();
 }
 
 unsigned long amiguard_ae_signature_count(void)
@@ -148,9 +151,26 @@ int amiguard_ae_signature_authenticate(const char *manifest_path,
 {
     if (detail != 0 && detail_size != 0UL)
         detail[0] = '\0';
+    if (auth_provider != 0)
+        return auth_provider(manifest_path, database_path, crc32, detail, detail_size);
+    return amiguard_ae_ed25519_authenticate(manifest_path,
+                                            database_path,
+                                            crc32,
+                                            detail,
+                                            detail_size);
+}
+
+void amiguard_ae_signature_auth_commit(void)
+{
     if (auth_provider == 0)
-        return 0;
-    return auth_provider(manifest_path, database_path, crc32, detail, detail_size);
+        amiguard_ae_ed25519_auth_commit();
+}
+
+unsigned long amiguard_ae_signature_auth_sequence(void)
+{
+    if (auth_provider != 0)
+        return 0UL;
+    return amiguard_ae_ed25519_committed_sequence();
 }
 
 int amiguard_ae_signature_update(const char *path,

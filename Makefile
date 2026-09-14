@@ -1,5 +1,6 @@
 HOST_CC ?= cc
 HOST_CFLAGS ?= -std=c89 -Wall -Wextra -Werror -pedantic -Iinclude -Isrc
+CRYPTO_CFLAGS ?= -std=gnu89 -Wall -Wextra -Werror -Iinclude -Isrc
 AMIGA_CC ?= m68k-amigaos-gcc
 AMIGA_CFLAGS ?= -m68000 -Os -Wall -Wextra -Iinclude -Isrc
 ED25519_DIR ?= deps/ed25519
@@ -42,7 +43,7 @@ deps-ed25519:
 $(ED25519_TEST_TARGET): tests/test_ed25519_auth.c src/signature_auth_ed25519.c src/signature_manifest.c src/signature_auth_ed25519.h src/signature_manifest.h
 	@test -f $(ED25519_DIR)/src/ed25519.h || { echo "run make deps-ed25519 first"; exit 1; }
 	@mkdir -p build
-	$(HOST_CC) $(HOST_CFLAGS) -I$(ED25519_DIR)/src $(CI_CRYPTO_DEFS) tests/test_ed25519_auth.c src/signature_auth_ed25519.c src/signature_manifest.c $(ED25519_SRC) -o $(ED25519_TEST_TARGET)
+	$(HOST_CC) $(CRYPTO_CFLAGS) -I$(ED25519_DIR)/src $(CI_CRYPTO_DEFS) tests/test_ed25519_auth.c src/signature_auth_ed25519.c src/signature_manifest.c $(ED25519_SRC) -o $(ED25519_TEST_TARGET)
 
 crypto-check: $(ED25519_TEST_TARGET)
 	./$(ED25519_TEST_TARGET)

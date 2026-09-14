@@ -9,7 +9,6 @@
 #include "ed25519.h"
 #endif
 
-#define AUTH_DETAIL_MAX 128
 #define AUTH_PAYLOAD_MAX 768
 
 static unsigned long committed_sequence = 0UL;
@@ -25,6 +24,9 @@ static void set_detail(char *detail, unsigned long size, const char *text)
     detail[size - 1UL] = '\0';
 }
 
+#if defined(AMIGUARD_AE_WITH_ED25519) && \
+    defined(AMIGUARD_AE_TRUSTED_KEY_ID) && \
+    defined(AMIGUARD_AE_TRUSTED_PUBLIC_KEY_HEX)
 static int hex_value(int ch)
 {
     if (ch >= '0' && ch <= '9')
@@ -64,6 +66,7 @@ static const char *base_name(const char *path)
     }
     return base;
 }
+#endif
 
 int amiguard_ae_ed25519_auth_available(void)
 {

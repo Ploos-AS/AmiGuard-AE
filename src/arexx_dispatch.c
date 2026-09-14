@@ -271,9 +271,10 @@ static void dispatch_signature_update(const char *command, AmiGuardAERexxResult 
         set_result(out, AMIGUARD_AE_RC_ERROR, text);
         return;
     }
+    amiguard_ae_signature_auth_commit();
     if (detail[0] == '\0')
         strcpy(detail, "updated");
-    sprintf(text, "UPDATED VERIFIED=CRC32 AUTH=OK %s", detail);
+    sprintf(text, "UPDATED VERIFIED=CRC32 AUTH=ED25519 %s", detail);
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
@@ -313,7 +314,7 @@ void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
         sprintf(version, "%s %s", AMIGUARD_AE_NAME, amiguard_ae_version_string());
         set_result(out, AMIGUARD_AE_RC_OK, version);
     } else if (strcmp(verb, "STATUS") == 0)
-        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_scanner_available() ? "READY M3.7 scanner=connected" : "READY M3.7 scanner=not-connected");
+        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_scanner_available() ? "READY M3.8b scanner=connected" : "READY M3.8b scanner=not-connected");
     else if (strcmp(verb, "HELP") == 0)
         set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.STATUS SIGNATURE.INFO SIGNATURE.UPDATE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
     else if (strcmp(verb, "SCAN") == 0)

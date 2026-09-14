@@ -130,7 +130,6 @@ int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
     if (stored_path != 0 && stored_path_size > 0UL)
         stored_path[0] = '\0';
 
-    /* No destination or staging object may already exist. */
     if (file_exists(destination)) {
         detail_set(detail, detail_size, "quarantine destination exists");
         return 0;
@@ -145,7 +144,7 @@ int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
         return 0;
     }
     if (!amiguard_ae_checksum_crc32(stage, &sum) ||
-        sscanf(sum.checksum, "CRC32 %lx", &actual_crc) != 1 ||
+        sscanf(sum.checksum, "%lx", &actual_crc) != 1 ||
         actual_crc != plan->source_crc32) {
         remove(stage);
         detail_set(detail, detail_size, "staged verification failed; source preserved");

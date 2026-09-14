@@ -1,0 +1,10 @@
+build/
+deps/
+*.pem
+*.key
+*.p8
+*.pk8
+*.private
+AmiGuardAE
+AmiGuardAE.amiga
+AmiGuardAE-aros-smoke.amiga

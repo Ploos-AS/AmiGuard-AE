@@ -2,5 +2,5 @@
 
 const char *amiguard_ae_version_string(void)
 {
-    return "0.3.0-m3.8b";
+    return "0.4.0-m4.3";
 }

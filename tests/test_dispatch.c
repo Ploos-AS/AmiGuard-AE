@@ -112,8 +112,8 @@ int main(void)
         return 1;
 
     failed += expect("PING",0,"PONG");
-    failed += expect(" version ",0,"AmiGuard AE 0.3.0-m3.7");
-    failed += expect("STATUS",0,"READY M3.7 scanner=not-connected");
+    failed += expect(" version ",0,"AmiGuard AE 0.3.0-m3.8b");
+    failed += expect("STATUS",0,"READY M3.8b scanner=not-connected");
     failed += expect("SIGNATURE.STATUS",10,"ERROR signature backend unavailable");
     failed += expect("SIGNATURE.UPDATE",10,"ERROR SIGNATURE.UPDATE requires path CRC32 manifest");
 
@@ -127,7 +127,7 @@ int main(void)
     failed += expect("SIGNATURE.STATUS",0,"READY COUNT=2 UPDATE=AVAILABLE VERIFY=CRC32 AUTH=AVAILABLE");
     failed += expect("SIGNATURE.UPDATE build/fixture.sigdb 00000000 build/fixture.manifest",10,"ERROR checksum mismatch expected=00000000 actual=CBF43926");
     failed += expect("SIGNATURE.UPDATE build/fixture.sigdb CBF43926 build/bad.manifest",10,"ERROR manifest authentication failed");
-    failed += expect("SIGNATURE.UPDATE build/fixture.sigdb cbf43926 build/fixture.manifest",0,"UPDATED VERIFIED=CRC32 AUTH=OK fixture-v1");
+    failed += expect("SIGNATURE.UPDATE build/fixture.sigdb cbf43926 build/fixture.manifest",0,"UPDATED VERIFIED=CRC32 AUTH=CUSTOM fixture-v1");
     failed += expect("SIGNATURE.COUNT",0,"2");
     failed += expect("SIGNATURE.INFO 0",0,"INDEX=0 TYPE=BOOTBLOCK OFFSET=64 LENGTH=8 TEST_ONLY=0 NAME=Test.Boot");
     failed += expect("CHECKSUM build/checksum-fixture.bin",0,"CRC32 CBF43926");
@@ -137,7 +137,7 @@ int main(void)
     failed += expect("SCAN",10,"ERROR SCAN requires path");
 
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS",0,"READY M3.7 scanner=connected");
+    failed += expect("STATUS",0,"READY M3.8b scanner=connected");
     failed += expect("SCAN clean.bin",0,"CLEAN known-clean");
     failed += expect("RESULT.STATUS",0,"CLEAN");
     failed += expect("SCAN virus.bin",5,"INFECTED Test.Virus");
@@ -153,6 +153,6 @@ int main(void)
 
     if (failed != 0)
         return 1;
-    puts("M3.7 authenticated update gate qualification: PASS");
+    puts("M3.8b authenticated update dispatcher qualification: PASS");
     return 0;
 }

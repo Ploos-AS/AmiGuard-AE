@@ -12,6 +12,14 @@ static void detail_set(char *detail, unsigned long size, const char *text)
     detail[size - 1UL] = '\0';
 }
 
+static int file_exists(const char *path)
+{
+    FILE *fp = fopen(path, "rb");
+    if (fp == 0) return 0;
+    fclose(fp);
+    return 1;
+}
+
 static int build_path(char *out, unsigned long size, const char *dir,
                       const char *name)
 {
@@ -91,6 +99,9 @@ int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
     char metadata_stage[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     char metadata[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     char name[32];
+    char metadata_name[32];
+    char stage_name[32];
+    char metadata_stage_name[32];
     AmiGuardAEChecksumResult sum;
     unsigned long actual_crc;
 
@@ -106,31 +117,26 @@ int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
     }
 
     sprintf(name, "%s.qtn", plan->id);
+    sprintf(metadata_name, "%s.meta", plan->id);
+    sprintf(stage_name, ".%s.stage", plan->id);
+    sprintf(metadata_stage_name, ".%s.meta.stage", plan->id);
     if (!build_path(destination, sizeof(destination), directory, name) ||
-        !build_path(stage, sizeof(stage), directory, ".amiguard-stage") ||
-        !build_path(metadata, sizeof(metadata), directory, "quarantine.meta") ||
-        !build_path(metadata_stage, sizeof(metadata_stage), directory, ".quarantine.meta.stage")) {
+        !build_path(stage, sizeof(stage), directory, stage_name) ||
+        !build_path(metadata, sizeof(metadata), directory, metadata_name) ||
+        !build_path(metadata_stage, sizeof(metadata_stage), directory, metadata_stage_name)) {
         detail_set(detail, detail_size, "quarantine path too long");
         return 0;
     }
     if (stored_path != 0 && stored_path_size > 0UL)
         stored_path[0] = '\0';
 
-    /* Never overwrite an existing quarantine object. */
-    if (fopen(destination, "rb") != 0) {
-        FILE *existing = fopen(destination, "rb");
-        if (existing != 0) fclose(existing);
+    /* No destination or staging object may already exist. */
+    if (file_exists(destination)) {
         detail_set(detail, detail_size, "quarantine destination exists");
         return 0;
     }
-    if (fopen(stage, "rb") != 0) {
-        FILE *existing_stage = fopen(stage, "rb");
-        if (existing_stage != 0) fclose(existing_stage);
+    if (file_exists(stage) || file_exists(metadata) || file_exists(metadata_stage)) {
         detail_set(detail, detail_size, "quarantine staging path busy");
-        return 0;
-    }
-    if (fopen(metadata, "rb") != 0 || fopen(metadata_stage, "rb") != 0) {
-        detail_set(detail, detail_size, "quarantine metadata path busy");
         return 0;
     }
 
@@ -159,7 +165,6 @@ int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
     }
 
     if (remove(plan->source) != 0) {
-        /* The committed copy is retained; callers can retry source removal. */
         if (stored_path != 0 && stored_path_size > 0UL &&
             (unsigned long)strlen(destination) < stored_path_size)
             strcpy(stored_path, destination);

@@ -19,14 +19,26 @@ typedef int (*AmiGuardAESignatureInfoProvider)(unsigned long index,
 typedef int (*AmiGuardAESignatureUpdateProvider)(const char *path,
                                                  char *detail,
                                                  unsigned long detail_size);
+typedef int (*AmiGuardAESignatureAuthProvider)(const char *manifest_path,
+                                               const char *database_path,
+                                               const char *crc32,
+                                               char *detail,
+                                               unsigned long detail_size);
 
 void amiguard_ae_signature_set_count_provider(AmiGuardAESignatureCountProvider provider);
 void amiguard_ae_signature_set_info_provider(AmiGuardAESignatureInfoProvider provider);
 void amiguard_ae_signature_set_update_provider(AmiGuardAESignatureUpdateProvider provider);
+void amiguard_ae_signature_set_auth_provider(AmiGuardAESignatureAuthProvider provider);
 int amiguard_ae_signature_available(void);
 int amiguard_ae_signature_update_available(void);
+int amiguard_ae_signature_auth_available(void);
 unsigned long amiguard_ae_signature_count(void);
 int amiguard_ae_signature_info(unsigned long index, AmiGuardAESignatureInfo *out);
+int amiguard_ae_signature_authenticate(const char *manifest_path,
+                                       const char *database_path,
+                                       const char *crc32,
+                                       char *detail,
+                                       unsigned long detail_size);
 int amiguard_ae_signature_update(const char *path,
                                  char *detail,
                                  unsigned long detail_size);

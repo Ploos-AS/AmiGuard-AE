@@ -2,13 +2,7 @@
 
 ## Port
 
-The public ARexx port is:
-
-```text
-AMIGUARD
-```
-
-Scripts should use `ADDRESS AMIGUARD` after verifying that AmiGuard AE is running.
+The public ARexx port is `AMIGUARD`. Scripts should use `ADDRESS AMIGUARD` after verifying that AmiGuard AE is running.
 
 ## Return codes
 
@@ -32,151 +26,67 @@ Unknown and empty commands return RC `10` deterministically.
 
 ## Core commands
 
-### `PING`
+`PING` returns RC 0 and `PONG`. `VERSION` returns the AmiGuard AE version string. `STATUS` returns the current milestone/core and scanner state. `HELP` lists the available command surface.
 
-RC `0`, result:
+## Scanner commands
 
-```text
-PONG
-```
+### `SCAN <path>` / `SCANFILE <path>`
 
-### `VERSION`
-
-RC `0`, result contains the AmiGuard AE version string.
-
-### `STATUS`
-
-RC `0`. At M2.6 the native core reports one of:
-
-```text
-READY M2.6 scanner=connected
-READY M2.6 scanner=not-connected
-```
-
-### `HELP`
-
-RC `0`, result lists the available command surface.
-
-## M2 scanner commands
-
-### `SCAN <path>`
-
-Scans one path through the configured AmiGuard-compatible scanner provider and stores the structured result.
-
-Typical outcomes:
-
-```text
-RC 0  CLEAN <detail>
-RC 5  INFECTED <detail>
-RC 5  SUSPICIOUS <detail>
-RC 10 ERROR <detail>
-```
-
-Missing path returns:
-
-```text
-RC 10 ERROR SCAN requires path
-```
-
-M2 does not define recursive directory or volume semantics for `SCAN`.
-
-### `SCANFILE <path>`
-
-Scans one file through the scanner provider and updates the same `RESULT.*` state as `SCAN`.
-
-Typical outcomes use the same CLEAN / INFECTED / SUSPICIOUS / ERROR convention as `SCAN`.
-
-Missing path returns:
-
-```text
-RC 10 ERROR SCANFILE requires path
-```
-
-A CLEAN result means that the current engine/signature set did not detect a threat; it is not a proof that the file is safe.
+Scan one target through the configured AmiGuard-compatible scanner provider and store structured `RESULT.*` state. Outcomes are RC 0 CLEAN, RC 5 INFECTED/SUSPICIOUS, or RC 10 ERROR. A CLEAN result only means the current engine/signature set did not detect a threat.
 
 ### `CHECKSUM <path>`
 
-Calculates a read-only CRC32 checksum.
-
-Success:
-
-```text
-RC 0 CRC32 XXXXXXXX
-```
-
-Missing path or read/open errors return RC `10` with deterministic `ERROR ...` text.
-
-CRC32 is provided for identification and integrity convenience. It is not a cryptographic security primitive.
-
-`CHECKSUM` does not modify `RESULT.*` scan state.
+Returns `CRC32 XXXXXXXX` on success. CRC32 is for identification/integrity convenience and is not a cryptographic authenticity primitive. This command does not alter `RESULT.*`.
 
 ### `IDENTIFY <path>`
 
-Performs read-only type identification and returns a stable type/detail pair.
+Read-only identification. Stable categories include `AMIGA-HUNK HUNK_HEADER`, `IFF FORM container`, and `DATA unrecognized binary/data`. It does not alter `RESULT.*`.
 
-Current stable categories include:
+## Structured scan result interface
 
-```text
-AMIGA-HUNK HUNK_HEADER
-IFF FORM container
-DATA unrecognized binary/data
-```
+`RESULT.STATUS`, `RESULT.PATH`, `RESULT.DETAIL`, and `RESULT.CLEAR` expose the most recent `SCAN`/`SCANFILE` result. Stable statuses are CLEAN, INFECTED, SUSPICIOUS and ERROR.
 
-Missing path or read/open errors return RC `10`.
+## M3 signature automation
 
-`IDENTIFY` does not modify `RESULT.*` scan state.
+### `SIGNATURE.COUNT`
 
-## Structured result interface
+Returns the number of active signatures as a decimal value. RC 10 is returned when the signature backend is unavailable.
 
-`RESULT.*` represents the most recent `SCAN` or `SCANFILE` operation.
+### `SIGNATURE.INFO <index>`
 
-### `RESULT.STATUS`
+Returns deterministic metadata for the zero-based signature index. Boot-block signatures precede file signatures in the current flattened view. Invalid/missing indices return RC 10.
 
-RC `0` when a result exists. Stable values:
+### `SIGNATURE.STATUS`
 
-```text
-CLEAN
-INFECTED
-SUSPICIOUS
-ERROR
-```
+Returns machine-readable capability state including active signature count, update availability, `VERIFY=CRC32`, and `AUTH=AVAILABLE|UNAVAILABLE`.
 
-Before any stored scan result exists:
+### `SIGNATURE.UPDATE <database> <CRC32> <manifest>`
 
-```text
-RC 10 ERROR no scan result
-```
+Attempts an authenticated runtime signature database update. The update pipeline is deliberately fail-closed:
 
-### `RESULT.PATH`
+1. The candidate database CRC32 must match the supplied eight-hex-digit CRC32.
+2. The signed manifest must parse using the strict `AMIGUARD-SIGMANIFEST 1` contract.
+3. Manifest algorithm must be Ed25519 and its database name/CRC32 must bind to the candidate.
+4. KEYID must resolve to the trusted public key provisioned into the build.
+5. The Ed25519 signature over the canonical manifest payload must verify.
+6. The manifest sequence must be newer than the accepted sequence in the running process.
+7. Only after those gates pass may the runtime signature database be activated.
 
-RC `0`, returns the path associated with the stored scan result.
+A production build with no trusted public key provisioned rejects authenticated updates rather than silently trusting a candidate. Private signing keys are never required by or embedded in AmiGuard AE runtime builds.
 
-### `RESULT.DETAIL`
+CRC32 provides accidental-corruption/integrity checking only; authenticity comes from Ed25519.
 
-RC `0`, returns scanner detail associated with the stored scan result.
+M3 sequence anti-rollback state is process-local. It prevents replay during a running instance but is not yet durable across reboot/process restart. Documentation and callers must not describe M3 as reboot-resistant rollback protection.
 
-### `RESULT.CLEAR`
+See `docs/M3_8A_SIGNED_MANIFEST.md`, `docs/M3_9_SIGNING_TRUST.md`, and `docs/M3_10_PRODUCTION_TRUST_BUILD.md` for the manifest, signing and production provisioning contracts.
 
-Clears structured scan state.
-
-```text
-RC 0 OK
-```
-
-## M3 planned signature commands
-
-- `SIGNATURE.INFO <name-or-id>`
-- `SIGNATURE.COUNT`
-- signature update/status operations
-
-The M3 command contract will be frozen before that milestone is marked complete.
-
-## Planned quarantine commands
+## M4 planned quarantine/policy commands
 
 - `QUARANTINE <path>`
 - `RESTORE <id>`
+- policy/configuration operations
 
-Destructive or state-changing operations require additional safety design before implementation.
+M4 must define safe-path rules, deterministic quarantine IDs/metadata, non-overwrite restore behavior and audit semantics before destructive file operations are enabled.
 
 ## Planned configuration interface
 
@@ -189,15 +99,9 @@ Candidate events are scan started/completed, infected/detection, clean, error, q
 
 ## Qualification model
 
-GitHub Actions qualifies:
+GitHub Actions qualifies strict host-side tests, Bebbo native 68000 builds, and native 68k scanner/core execution in an FS-UAE/AROS guest. AROS nightly does not supply the classic `rexxsyslib.library` required by the production ARexx transport. Therefore the public `AMIGUARD` port, RexxMast interaction and transport shutdown behavior remain a deliberate local qualification gate on classic AmigaOS 2.04+.
 
-- strict host-side dispatch/tests,
-- Bebbo native 68000 build,
-- native 68k scanner/core execution in an FS-UAE/AROS guest.
-
-AROS nightly does not supply the classic `rexxsyslib.library` required by the production ARexx transport. Therefore the public `AMIGUARD` port, RexxMast interaction and transport shutdown behavior remain a deliberate local qualification gate on classic AmigaOS 2.04+.
-
-`examples/m1_qualification.rexx` remains the base transport probe for that local qualification and should be extended as later command surfaces are qualified through the live ARexx port.
+`examples/m1_qualification.rexx` remains the base transport probe and should be extended as later command surfaces are qualified through the live ARexx port.
 
 ## Compatibility
 

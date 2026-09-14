@@ -39,6 +39,8 @@ int amiguard_ae_signature_authenticate(const char *manifest_path,
                                        const char *crc32,
                                        char *detail,
                                        unsigned long detail_size);
+void amiguard_ae_signature_auth_commit(void);
+unsigned long amiguard_ae_signature_auth_sequence(void);
 int amiguard_ae_signature_update(const char *path,
                                  char *detail,
                                  unsigned long detail_size);

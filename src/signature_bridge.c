@@ -119,6 +119,15 @@ int amiguard_ae_signature_auth_available(void)
     return amiguard_ae_ed25519_auth_available();
 }
 
+const char *amiguard_ae_signature_auth_method(void)
+{
+    if (auth_provider != 0)
+        return "CUSTOM";
+    if (amiguard_ae_ed25519_auth_available())
+        return "ED25519";
+    return "NONE";
+}
+
 unsigned long amiguard_ae_signature_count(void)
 {
     if (count_provider != 0)

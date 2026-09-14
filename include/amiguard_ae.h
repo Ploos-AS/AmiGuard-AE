@@ -4,7 +4,7 @@
 #define AMIGUARD_AE_NAME "AmiGuard AE"
 #define AMIGUARD_AE_AREXX_PORT "AMIGUARD"
 #define AMIGUARD_AE_VERSION_MAJOR 0
-#define AMIGUARD_AE_VERSION_MINOR 1
+#define AMIGUARD_AE_VERSION_MINOR 3
 #define AMIGUARD_AE_VERSION_PATCH 0
 
 /* AmigaDOS/ARexx-style return codes used by the public command surface. */

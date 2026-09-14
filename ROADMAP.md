@@ -117,7 +117,7 @@ Status: **complete and automated-qualified**.
 
 ### M4.2 - Transactional quarantine store
 
-Status: **implementation complete; automated qualification pending**.
+Status: **implementation complete; host automated qualification complete; FS-UAE/AROS qualification from the M4.2 head was still running when M4.3 implementation began**.
 
 - Stage source into a per-object temporary file.
 - Verify staged CRC32 against the plan.
@@ -128,17 +128,23 @@ Status: **implementation complete; automated qualification pending**.
 - Preserve the source on staging, verification or metadata failure.
 - Report source-removal-pending separately when commit succeeds but source deletion fails.
 
-M4.2 deliberately does not expose `QUARANTINE` through ARexx yet and does not implement restore.
-
 ### M4.3 - ARexx quarantine command
 
-Next after M4.2 qualification:
+Status: **implementation complete; automated qualification pending**.
 
-- `QUARANTINE <path>`
-- deterministic result/return semantics
-- policy checks before invoking the mutating backend
+- `QUARANTINE <path>` exposed through the dispatcher/ARexx command surface.
+- Fail-closed when no quarantine directory is configured.
+- Explicit quarantine-directory policy API; no hidden production default.
+- RC 0 when object+metadata commit and source removal all succeed.
+- RC 5 when object+metadata are committed but source removal remains pending.
+- RC 10 for rejected/failed operations.
+- Deterministic result form `QUARANTINED ID=<id> PATH=<stored-path>`.
+- Reuses the M4.1 planning and M4.2 transactional store pipeline.
+- Production-shaped Bebbo 68000 build includes the quarantine sources.
 
 ### M4.4 - Restore and policy
+
+Next after M4.3 qualification:
 
 - `RESTORE <id>`
 - refuse silent overwrite of an existing destination

@@ -37,223 +37,102 @@ static void set_result(AmiGuardAERexxResult *out, long rc, const char *text)
     out->result[AMIGUARD_AE_RESULT_MAX - 1] = '\0';
 }
 
-static void dispatch_scan_target(const char *command,
-                                 const char *verb,
-                                 AmiGuardAERexxResult *out)
+static void dispatch_scan_target(const char *command, const char *verb, AmiGuardAERexxResult *out)
 {
     const char *path = command_argument(command);
     AmiGuardAEScanResult scan;
     char text[AMIGUARD_AE_RESULT_MAX];
-
-    if (*path == '\0') {
-        sprintf(text, "ERROR %s requires path", verb);
-        set_result(out, AMIGUARD_AE_RC_ERROR, text);
-        return;
-    }
-
-    if (!amiguard_ae_scanner_scan_file(path, &scan)) {
-        amiguard_ae_result_record(path, &scan);
-        sprintf(text, "ERROR %s", scan.detail);
-        set_result(out, AMIGUARD_AE_RC_ERROR, text);
-        return;
-    }
-
+    if (*path == '\0') { sprintf(text, "ERROR %s requires path", verb); set_result(out, AMIGUARD_AE_RC_ERROR, text); return; }
+    if (!amiguard_ae_scanner_scan_file(path, &scan)) { amiguard_ae_result_record(path, &scan); sprintf(text, "ERROR %s", scan.detail); set_result(out, AMIGUARD_AE_RC_ERROR, text); return; }
     amiguard_ae_result_record(path, &scan);
-    if (scan.status == AMIGUARD_AE_SCAN_INFECTED) {
-        sprintf(text, "INFECTED %s", scan.detail);
-        set_result(out, AMIGUARD_AE_RC_WARN, text);
-    } else if (scan.status == AMIGUARD_AE_SCAN_SUSPICIOUS) {
-        sprintf(text, "SUSPICIOUS %s", scan.detail);
-        set_result(out, AMIGUARD_AE_RC_WARN, text);
-    } else if (scan.status == AMIGUARD_AE_SCAN_CLEAN) {
-        sprintf(text, "CLEAN %s", scan.detail);
-        set_result(out, AMIGUARD_AE_RC_OK, text);
-    } else {
-        sprintf(text, "ERROR %s", scan.detail);
-        set_result(out, AMIGUARD_AE_RC_ERROR, text);
-    }
+    if (scan.status == AMIGUARD_AE_SCAN_INFECTED) { sprintf(text, "INFECTED %s", scan.detail); set_result(out, AMIGUARD_AE_RC_WARN, text); }
+    else if (scan.status == AMIGUARD_AE_SCAN_SUSPICIOUS) { sprintf(text, "SUSPICIOUS %s", scan.detail); set_result(out, AMIGUARD_AE_RC_WARN, text); }
+    else if (scan.status == AMIGUARD_AE_SCAN_CLEAN) { sprintf(text, "CLEAN %s", scan.detail); set_result(out, AMIGUARD_AE_RC_OK, text); }
+    else { sprintf(text, "ERROR %s", scan.detail); set_result(out, AMIGUARD_AE_RC_ERROR, text); }
 }
 
 static void dispatch_checksum(const char *command, AmiGuardAERexxResult *out)
 {
-    const char *path = command_argument(command);
-    AmiGuardAEChecksumResult checksum;
-    char text[AMIGUARD_AE_RESULT_MAX];
-
-    if (*path == '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR CHECKSUM requires path");
-        return;
-    }
-
-    if (!amiguard_ae_checksum_crc32(path, &checksum)) {
-        sprintf(text, "ERROR %s", checksum.detail);
-        set_result(out, AMIGUARD_AE_RC_ERROR, text);
-        return;
-    }
-
-    sprintf(text, "CRC32 %s", checksum.checksum);
-    set_result(out, AMIGUARD_AE_RC_OK, text);
+    const char *path = command_argument(command); AmiGuardAEChecksumResult checksum; char text[AMIGUARD_AE_RESULT_MAX];
+    if (*path == '\0') { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR CHECKSUM requires path"); return; }
+    if (!amiguard_ae_checksum_crc32(path, &checksum)) { sprintf(text, "ERROR %s", checksum.detail); set_result(out, AMIGUARD_AE_RC_ERROR, text); return; }
+    sprintf(text, "CRC32 %s", checksum.checksum); set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
 static void dispatch_identify(const char *command, AmiGuardAERexxResult *out)
 {
-    const char *path = command_argument(command);
-    AmiGuardAEIdentifyResult id;
-    char text[AMIGUARD_AE_RESULT_MAX];
-
-    if (*path == '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR IDENTIFY requires path");
-        return;
-    }
-
-    if (!amiguard_ae_identify_file(path, &id)) {
-        sprintf(text, "ERROR %s", id.detail);
-        set_result(out, AMIGUARD_AE_RC_ERROR, text);
-        return;
-    }
-
-    sprintf(text, "%s %s", id.type, id.detail);
-    set_result(out, AMIGUARD_AE_RC_OK, text);
+    const char *path = command_argument(command); AmiGuardAEIdentifyResult id; char text[AMIGUARD_AE_RESULT_MAX];
+    if (*path == '\0') { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR IDENTIFY requires path"); return; }
+    if (!amiguard_ae_identify_file(path, &id)) { sprintf(text, "ERROR %s", id.detail); set_result(out, AMIGUARD_AE_RC_ERROR, text); return; }
+    sprintf(text, "%s %s", id.type, id.detail); set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
 static void dispatch_signature_count(AmiGuardAERexxResult *out)
 {
     char text[AMIGUARD_AE_RESULT_MAX];
-    if (!amiguard_ae_signature_available()) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable");
-        return;
-    }
-    sprintf(text, "%lu", amiguard_ae_signature_count());
+    if (!amiguard_ae_signature_available()) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable"); return; }
+    sprintf(text, "%lu", amiguard_ae_signature_count()); set_result(out, AMIGUARD_AE_RC_OK, text);
+}
+
+static void dispatch_signature_status(const char *command, AmiGuardAERexxResult *out)
+{
+    const char *arg = command_argument(command); char text[AMIGUARD_AE_RESULT_MAX];
+    if (*arg != '\0') { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.STATUS takes no arguments"); return; }
+    if (!amiguard_ae_signature_available()) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable"); return; }
+    sprintf(text, "READY COUNT=%lu UPDATE=%s", amiguard_ae_signature_count(), amiguard_ae_signature_update_available() ? "AVAILABLE" : "UNAVAILABLE");
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
 static void dispatch_signature_info(const char *command, AmiGuardAERexxResult *out)
 {
-    const char *arg = command_argument(command);
-    char *end = 0;
-    unsigned long index;
-    AmiGuardAESignatureInfo info;
-    char text[AMIGUARD_AE_RESULT_MAX];
-
-    if (!amiguard_ae_signature_available()) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable");
-        return;
-    }
-    if (*arg == '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.INFO requires index");
-        return;
-    }
-
+    const char *arg = command_argument(command); char *end = 0; unsigned long index; AmiGuardAESignatureInfo info; char text[AMIGUARD_AE_RESULT_MAX];
+    if (!amiguard_ae_signature_available()) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature backend unavailable"); return; }
+    if (*arg == '\0') { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.INFO requires index"); return; }
     index = strtoul(arg, &end, 10);
-    if (end == arg) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid signature index");
-        return;
-    }
+    if (end == arg) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid signature index"); return; }
     while (*end != '\0' && isspace((unsigned char)*end)) ++end;
-    if (*end != '\0' || index >= amiguard_ae_signature_count()) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid signature index");
-        return;
-    }
-    if (!amiguard_ae_signature_info(index, &info)) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature metadata unavailable");
-        return;
-    }
-
-    sprintf(text,
-            "INDEX=%lu TYPE=%s OFFSET=%lu LENGTH=%lu TEST_ONLY=%d NAME=%s",
-            index, info.type, info.offset, info.length, info.test_only, info.name);
+    if (*end != '\0' || index >= amiguard_ae_signature_count()) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR invalid signature index"); return; }
+    if (!amiguard_ae_signature_info(index, &info)) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature metadata unavailable"); return; }
+    sprintf(text, "INDEX=%lu TYPE=%s OFFSET=%lu LENGTH=%lu TEST_ONLY=%d NAME=%s", index, info.type, info.offset, info.length, info.test_only, info.name);
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
 static void dispatch_signature_update(const char *command, AmiGuardAERexxResult *out)
 {
-    const char *arg = command_argument(command);
-    char detail[AMIGUARD_AE_SIGNATURE_UPDATE_DETAIL_MAX];
-    char text[AMIGUARD_AE_RESULT_MAX];
-
-    if (*arg != '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE takes no arguments");
-        return;
-    }
-    if (!amiguard_ae_signature_update_available()) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature updater unavailable");
-        return;
-    }
-    if (!amiguard_ae_signature_update(detail, sizeof(detail))) {
-        if (detail[0] == '\0') strcpy(detail, "update failed");
-        sprintf(text, "ERROR %s", detail);
-        set_result(out, AMIGUARD_AE_RC_ERROR, text);
-        return;
-    }
-    if (detail[0] == '\0') strcpy(detail, "updated");
-    sprintf(text, "UPDATED %s", detail);
-    set_result(out, AMIGUARD_AE_RC_OK, text);
+    const char *arg = command_argument(command); char detail[AMIGUARD_AE_SIGNATURE_UPDATE_DETAIL_MAX]; char text[AMIGUARD_AE_RESULT_MAX];
+    if (*arg != '\0') { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR SIGNATURE.UPDATE takes no arguments"); return; }
+    if (!amiguard_ae_signature_update_available()) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR signature updater unavailable"); return; }
+    if (!amiguard_ae_signature_update(detail, sizeof(detail))) { if (detail[0] == '\0') strcpy(detail, "update failed"); sprintf(text, "ERROR %s", detail); set_result(out, AMIGUARD_AE_RC_ERROR, text); return; }
+    if (detail[0] == '\0') strcpy(detail, "updated"); sprintf(text, "UPDATED %s", detail); set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 
 static void dispatch_result(const char *verb, AmiGuardAERexxResult *out)
 {
-    if (strcmp(verb, "RESULT.CLEAR") == 0) {
-        amiguard_ae_result_clear();
-        set_result(out, AMIGUARD_AE_RC_OK, "OK");
-        return;
-    }
-
-    if (!amiguard_ae_result_valid()) {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR no scan result");
-        return;
-    }
-
-    if (strcmp(verb, "RESULT.STATUS") == 0)
-        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_status());
-    else if (strcmp(verb, "RESULT.PATH") == 0)
-        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_path());
-    else if (strcmp(verb, "RESULT.DETAIL") == 0)
-        set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_detail());
-    else
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR unknown RESULT command");
+    if (strcmp(verb, "RESULT.CLEAR") == 0) { amiguard_ae_result_clear(); set_result(out, AMIGUARD_AE_RC_OK, "OK"); return; }
+    if (!amiguard_ae_result_valid()) { set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR no scan result"); return; }
+    if (strcmp(verb, "RESULT.STATUS") == 0) set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_status());
+    else if (strcmp(verb, "RESULT.PATH") == 0) set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_path());
+    else if (strcmp(verb, "RESULT.DETAIL") == 0) set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_result_detail());
+    else set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR unknown RESULT command");
 }
 
 void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
 {
-    char verb[32];
-    char version[64];
-
-    if (out == NULL) return;
-    if (command == NULL) command = "";
-    trim_upper_token(command, verb, sizeof(verb));
-
-    if (strcmp(verb, "PING") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK, "PONG");
-    } else if (strcmp(verb, "VERSION") == 0) {
-        sprintf(version, "%s %s", AMIGUARD_AE_NAME, amiguard_ae_version_string());
-        set_result(out, AMIGUARD_AE_RC_OK, version);
-    } else if (strcmp(verb, "STATUS") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK,
-                   amiguard_ae_scanner_available()
-                       ? "READY M3.3 scanner=connected"
-                       : "READY M3.3 scanner=not-connected");
-    } else if (strcmp(verb, "HELP") == 0) {
-        set_result(out, AMIGUARD_AE_RC_OK,
-                   "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.INFO SIGNATURE.UPDATE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
-    } else if (strcmp(verb, "SCAN") == 0) {
-        dispatch_scan_target(command, "SCAN", out);
-    } else if (strcmp(verb, "SCANFILE") == 0) {
-        dispatch_scan_target(command, "SCANFILE", out);
-    } else if (strcmp(verb, "CHECKSUM") == 0) {
-        dispatch_checksum(command, out);
-    } else if (strcmp(verb, "IDENTIFY") == 0) {
-        dispatch_identify(command, out);
-    } else if (strcmp(verb, "SIGNATURE.COUNT") == 0) {
-        dispatch_signature_count(out);
-    } else if (strcmp(verb, "SIGNATURE.INFO") == 0) {
-        dispatch_signature_info(command, out);
-    } else if (strcmp(verb, "SIGNATURE.UPDATE") == 0) {
-        dispatch_signature_update(command, out);
-    } else if (strncmp(verb, "RESULT.", 7) == 0) {
-        dispatch_result(verb, out);
-    } else if (verb[0] == '\0') {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR empty command");
-    } else {
-        set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR unknown command");
-    }
+    char verb[32]; char version[64];
+    if (out == NULL) return; if (command == NULL) command = ""; trim_upper_token(command, verb, sizeof(verb));
+    if (strcmp(verb, "PING") == 0) set_result(out, AMIGUARD_AE_RC_OK, "PONG");
+    else if (strcmp(verb, "VERSION") == 0) { sprintf(version, "%s %s", AMIGUARD_AE_NAME, amiguard_ae_version_string()); set_result(out, AMIGUARD_AE_RC_OK, version); }
+    else if (strcmp(verb, "STATUS") == 0) set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_scanner_available() ? "READY M3.4 scanner=connected" : "READY M3.4 scanner=not-connected");
+    else if (strcmp(verb, "HELP") == 0) set_result(out, AMIGUARD_AE_RC_OK, "PING VERSION STATUS HELP SCAN SCANFILE CHECKSUM IDENTIFY SIGNATURE.COUNT SIGNATURE.STATUS SIGNATURE.INFO SIGNATURE.UPDATE RESULT.STATUS RESULT.PATH RESULT.DETAIL RESULT.CLEAR");
+    else if (strcmp(verb, "SCAN") == 0) dispatch_scan_target(command, "SCAN", out);
+    else if (strcmp(verb, "SCANFILE") == 0) dispatch_scan_target(command, "SCANFILE", out);
+    else if (strcmp(verb, "CHECKSUM") == 0) dispatch_checksum(command, out);
+    else if (strcmp(verb, "IDENTIFY") == 0) dispatch_identify(command, out);
+    else if (strcmp(verb, "SIGNATURE.COUNT") == 0) dispatch_signature_count(out);
+    else if (strcmp(verb, "SIGNATURE.STATUS") == 0) dispatch_signature_status(command, out);
+    else if (strcmp(verb, "SIGNATURE.INFO") == 0) dispatch_signature_info(command, out);
+    else if (strcmp(verb, "SIGNATURE.UPDATE") == 0) dispatch_signature_update(command, out);
+    else if (strncmp(verb, "RESULT.", 7) == 0) dispatch_result(verb, out);
+    else if (verb[0] == '\0') set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR empty command");
+    else set_result(out, AMIGUARD_AE_RC_ERROR, "ERROR unknown command");
 }

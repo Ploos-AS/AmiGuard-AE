@@ -69,6 +69,7 @@ check: test
 	@test -f ROADMAP.md
 	@test -f LICENSE
 	@test -f docs/AREXX_API.md
+	@test -f docs/M4_3_QUARANTINE_COMMAND.md
 	@test -f include/amiguard_ae.h
 	@test -f src/main.c
 	@test -f src/core.c
@@ -89,9 +90,10 @@ check: test
 	@test -f tests/test_quarantine_store.c
 	@test -f examples/ping.rexx
 	@grep -q 'AMIGUARD_AE_AREXX_PORT "AMIGUARD"' include/amiguard_ae.h
+	@grep -q 'QUARANTINE' src/arexx_dispatch.c
 	@grep -q 'm68k-amigaos-gcc' Makefile
 	@grep -q -- '-m68000' Makefile
-	@echo "M4.2 host qualification: PASS"
+	@echo "M4.3 host qualification: PASS"
 
 clean:
 	$(RM) -r $(TARGET) $(TARGET).amiga build

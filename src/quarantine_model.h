@@ -12,7 +12,6 @@ typedef struct AmiGuardAEQuarantinePlan {
     unsigned long source_size;
 } AmiGuardAEQuarantinePlan;
 
-/* M4.1 is planning-only: these APIs never move, delete or overwrite files. */
 int amiguard_ae_quarantine_path_safe(const char *path,
                                      char *detail,
                                      unsigned long detail_size);
@@ -20,5 +19,13 @@ int amiguard_ae_quarantine_plan(const char *path,
                                 AmiGuardAEQuarantinePlan *plan,
                                 char *detail,
                                 unsigned long detail_size);
+
+/* M4.2 store: stage -> verify -> commit metadata -> remove source. */
+int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
+                                 const char *directory,
+                                 char *stored_path,
+                                 unsigned long stored_path_size,
+                                 char *detail,
+                                 unsigned long detail_size);
 
 #endif

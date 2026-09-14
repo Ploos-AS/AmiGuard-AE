@@ -274,7 +274,10 @@ static void dispatch_signature_update(const char *command, AmiGuardAERexxResult 
     amiguard_ae_signature_auth_commit();
     if (detail[0] == '\0')
         strcpy(detail, "updated");
-    sprintf(text, "UPDATED VERIFIED=CRC32 AUTH=ED25519 %s", detail);
+    sprintf(text,
+            "UPDATED VERIFIED=CRC32 AUTH=%s %s",
+            amiguard_ae_signature_auth_method(),
+            detail);
     set_result(out, AMIGUARD_AE_RC_OK, text);
 }
 

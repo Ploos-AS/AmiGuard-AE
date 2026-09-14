@@ -4,12 +4,47 @@
 #include <stdio.h>
 #include <string.h>
 
+static char quarantine_directory[AMIGUARD_AE_QUARANTINE_PATH_MAX];
+
 static void detail_set(char *detail, unsigned long size, const char *text)
 {
     if (detail == 0 || size == 0UL) return;
     if (text == 0) text = "";
     strncpy(detail, text, (size_t)(size - 1UL));
     detail[size - 1UL] = '\0';
+}
+
+int amiguard_ae_quarantine_set_directory(const char *directory,
+                                         char *detail,
+                                         unsigned long detail_size)
+{
+    if (directory == 0 || directory[0] == '\0') {
+        quarantine_directory[0] = '\0';
+        detail_set(detail, detail_size, "quarantine directory cleared; quarantine disabled");
+        return 1;
+    }
+    if (strlen(directory) >= sizeof(quarantine_directory)) {
+        detail_set(detail, detail_size, "quarantine directory path too long");
+        return 0;
+    }
+    if (strcmp(directory, "/") == 0 || strcmp(directory, ".") == 0 ||
+        strcmp(directory, "..") == 0) {
+        detail_set(detail, detail_size, "unsafe quarantine directory");
+        return 0;
+    }
+    strcpy(quarantine_directory, directory);
+    detail_set(detail, detail_size, "quarantine directory configured");
+    return 1;
+}
+
+const char *amiguard_ae_quarantine_directory(void)
+{
+    return quarantine_directory;
+}
+
+int amiguard_ae_quarantine_available(void)
+{
+    return quarantine_directory[0] != '\0';
 }
 
 static int file_exists(const char *path)

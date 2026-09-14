@@ -28,4 +28,11 @@ int amiguard_ae_quarantine_store(const AmiGuardAEQuarantinePlan *plan,
                                  char *detail,
                                  unsigned long detail_size);
 
+/* M4.3 policy gate. No directory is configured by default (fail closed). */
+int amiguard_ae_quarantine_set_directory(const char *directory,
+                                         char *detail,
+                                         unsigned long detail_size);
+const char *amiguard_ae_quarantine_directory(void);
+int amiguard_ae_quarantine_available(void);
+
 #endif

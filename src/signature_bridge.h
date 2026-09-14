@@ -16,7 +16,8 @@ typedef struct AmiGuardAESignatureInfo {
 typedef unsigned long (*AmiGuardAESignatureCountProvider)(void);
 typedef int (*AmiGuardAESignatureInfoProvider)(unsigned long index,
                                                AmiGuardAESignatureInfo *out);
-typedef int (*AmiGuardAESignatureUpdateProvider)(char *detail,
+typedef int (*AmiGuardAESignatureUpdateProvider)(const char *path,
+                                                 char *detail,
                                                  unsigned long detail_size);
 
 void amiguard_ae_signature_set_count_provider(AmiGuardAESignatureCountProvider provider);
@@ -26,6 +27,8 @@ int amiguard_ae_signature_available(void);
 int amiguard_ae_signature_update_available(void);
 unsigned long amiguard_ae_signature_count(void);
 int amiguard_ae_signature_info(unsigned long index, AmiGuardAESignatureInfo *out);
-int amiguard_ae_signature_update(char *detail, unsigned long detail_size);
+int amiguard_ae_signature_update(const char *path,
+                                 char *detail,
+                                 unsigned long detail_size);
 
 #endif

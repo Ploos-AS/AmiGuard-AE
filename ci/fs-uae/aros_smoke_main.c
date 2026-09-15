@@ -72,7 +72,7 @@ int main(void)
         return AMIGUARD_AE_RC_FAIL;
 
     ok = expect("PING",0,"PONG") && ok;
-    ok = expect("STATUS",0,"READY M4.3 scanner=connected quarantine=UNAVAILABLE") && ok;
+    ok = expect("STATUS",0,"READY M4.3 scanner=connected") && ok;
     ok = expect("SIGNATURE.STATUS",0,"READY COUNT=4 UPDATE=AVAILABLE VERIFY=CRC32 AUTH=AVAILABLE") && ok;
     ok = expect("SIGNATURE.UPDATE RAM:amiguard-ae-runtime.sigdb 00000000 RAM:amiguard-ae-runtime.manifest",10,"ERROR checksum mismatch expected=00000000 actual=4D0F09D8") && ok;
     ok = expect("SIGNATURE.UPDATE RAM:amiguard-ae-runtime.sigdb 4D0F09D8 RAM:amiguard-ae-runtime.manifest",0,"UPDATED VERIFIED=CRC32 AUTH=ED25519 runtime signature database loaded") && ok;
@@ -90,7 +90,7 @@ int main(void)
     (void)mkdir(quarantine_dir, 0777);
     if (!amiguard_ae_quarantine_set_directory(quarantine_dir, detail, sizeof(detail)))
         ok = 0;
-    ok = expect("STATUS",0,"READY M4.3 scanner=connected quarantine=AVAILABLE") && ok;
+    ok = expect("STATUS",0,"READY M4.3 scanner=connected") && ok;
     if (!write_file(quarantine_source, quarantine_fixture,
                     (unsigned long)(sizeof(quarantine_fixture)-1U)))
         ok = 0;

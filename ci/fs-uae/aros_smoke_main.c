@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include "amiguard_ae.h"
 #include "arexx_dispatch.h"
+#include "quarantine_model.h"
 
 static int expect(const char *command, long rc, const char *result)
 {
@@ -41,6 +43,7 @@ int main(void)
 {
     static const unsigned char crc[] = "123456789";
     static const unsigned char hunk[] = {0,0,3,0xF3};
+    static const unsigned char quarantine_fixture[] = "M4.3 AROS quarantine fixture";
     static const unsigned char sigdb[] =
         "AMIGUARD-FILE-SIGDB 1\n"
         "FILE|AROS.Runtime.Test|0|1|313233343536373839|ffffffffffffffffff\n";
@@ -52,6 +55,14 @@ int main(void)
         "DATABASE=amiguard-ae-runtime.sigdb\n"
         "CRC32=4D0F09D8\n"
         "SIGNATURE=8b8159312281ffc29cc39e943501b7fe5cee5687f5e22b5cb4b661bdf0e3c3309c1d0cd29fa236c72e1c38ee7d3352cd92fabe88487c9484961a874714cf3a09\n";
+    const char *quarantine_dir = "RAM:amiguard-ae-quarantine";
+    const char *quarantine_source = "RAM:amiguard-ae-quarantine-source.bin";
+    AmiGuardAEQuarantinePlan plan;
+    char detail[AMIGUARD_AE_QUARANTINE_DETAIL_MAX];
+    char object_path[AMIGUARD_AE_QUARANTINE_PATH_MAX];
+    char metadata_path[AMIGUARD_AE_QUARANTINE_PATH_MAX];
+    char command[AMIGUARD_AE_QUARANTINE_PATH_MAX + 16];
+    FILE *probe;
     int ok = 1;
 
     if (!write_file("RAM:amiguard-ae-crc.bin",crc,9UL) ||
@@ -61,7 +72,7 @@ int main(void)
         return AMIGUARD_AE_RC_FAIL;
 
     ok = expect("PING",0,"PONG") && ok;
-    ok = expect("STATUS",0,"READY M3.8b scanner=connected") && ok;
+    ok = expect("STATUS",0,"READY M4.3 scanner=connected quarantine=UNAVAILABLE") && ok;
     ok = expect("SIGNATURE.STATUS",0,"READY COUNT=4 UPDATE=AVAILABLE VERIFY=CRC32 AUTH=AVAILABLE") && ok;
     ok = expect("SIGNATURE.UPDATE RAM:amiguard-ae-runtime.sigdb 00000000 RAM:amiguard-ae-runtime.manifest",10,"ERROR checksum mismatch expected=00000000 actual=4D0F09D8") && ok;
     ok = expect("SIGNATURE.UPDATE RAM:amiguard-ae-runtime.sigdb 4D0F09D8 RAM:amiguard-ae-runtime.manifest",0,"UPDATED VERIFIED=CRC32 AUTH=ED25519 runtime signature database loaded") && ok;
@@ -73,13 +84,51 @@ int main(void)
     ok = expect("IDENTIFY RAM:amiguard-ae-hunk.bin",0,"AMIGA-HUNK HUNK_HEADER") && ok;
     ok = expect("RESULT.CLEAR",0,"OK") && ok;
 
+    if (mkdir(quarantine_dir, 0777) != 0) {
+        probe = fopen(quarantine_dir, "rb");
+        if (probe == 0)
+            ok = 0;
+        else
+            fclose(probe);
+    }
+    if (!amiguard_ae_quarantine_set_directory(quarantine_dir, detail, sizeof(detail)))
+        ok = 0;
+    ok = expect("STATUS",0,"READY M4.3 scanner=connected quarantine=AVAILABLE") && ok;
+    if (!write_file(quarantine_source, quarantine_fixture,
+                    (unsigned long)(sizeof(quarantine_fixture)-1U)))
+        ok = 0;
+    if (!amiguard_ae_quarantine_plan(quarantine_source, &plan, detail, sizeof(detail)))
+        ok = 0;
+    sprintf(object_path, "%s/%s.qtn", quarantine_dir, plan.id);
+    sprintf(metadata_path, "%s/%s.meta", quarantine_dir, plan.id);
+    sprintf(command, "QUARANTINE %s", quarantine_source);
+    ok = expect_prefix(command,0,"QUARANTINED ID=") && ok;
+    probe = fopen(quarantine_source, "rb");
+    if (probe != 0) {
+        fclose(probe);
+        ok = 0;
+    }
+    probe = fopen(object_path, "rb");
+    if (probe == 0)
+        ok = 0;
+    else
+        fclose(probe);
+    probe = fopen(metadata_path, "rb");
+    if (probe == 0)
+        ok = 0;
+    else
+        fclose(probe);
+
     remove("RAM:amiguard-ae-crc.bin");
     remove("RAM:amiguard-ae-hunk.bin");
     remove("RAM:amiguard-ae-runtime.sigdb");
     remove("RAM:amiguard-ae-runtime.manifest");
+    remove(quarantine_source);
+    remove(object_path);
+    remove(metadata_path);
 
     if (!ok)
         return AMIGUARD_AE_RC_FAIL;
-    puts("M3.8b AROS Ed25519 authenticated update smoke: PASS");
+    puts("M4.3 AROS quarantine dispatcher smoke: PASS");
     return 0;
 }

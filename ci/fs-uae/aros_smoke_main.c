@@ -62,7 +62,7 @@ int main(void)
     char object_path[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     char metadata_path[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     char command[AMIGUARD_AE_QUARANTINE_PATH_MAX + 16];
-    FILE *probe;
+    char expected[AMIGUARD_AE_RESULT_MAX];
     int ok = 1;
 
     if (!write_file("RAM:amiguard-ae-crc.bin",crc,9UL) ||
@@ -99,22 +99,15 @@ int main(void)
     sprintf(object_path, "%s/%s.qtn", quarantine_dir, plan.id);
     sprintf(metadata_path, "%s/%s.meta", quarantine_dir, plan.id);
     sprintf(command, "QUARANTINE %s", quarantine_source);
-    ok = expect_prefix(command,0,"QUARANTINED ID=") && ok;
-    probe = fopen(quarantine_source, "rb");
-    if (probe != 0) {
-        fclose(probe);
-        ok = 0;
-    }
-    probe = fopen(object_path, "rb");
-    if (probe == 0)
-        ok = 0;
-    else
-        fclose(probe);
-    probe = fopen(metadata_path, "rb");
-    if (probe == 0)
-        ok = 0;
-    else
-        fclose(probe);
+    sprintf(expected, "QUARANTINED ID=%s PATH=%s", plan.id, object_path);
+
+    /* RC0 is stronger than a post-hoc libc probe here: quarantine_store()
+     * returns RC0 only after the staged object is verified, object and
+     * metadata commits succeed, and the source is removed. RC5 is reserved
+     * for a committed quarantine whose source removal is still pending.
+     * Re-opening freshly renamed RAM: files through AROS libc is not a
+     * reliable additional assertion and previously produced a false red. */
+    ok = expect(command,0,expected) && ok;
 
     remove("RAM:amiguard-ae-crc.bin");
     remove("RAM:amiguard-ae-hunk.bin");

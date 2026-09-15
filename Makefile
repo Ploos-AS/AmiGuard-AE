@@ -18,11 +18,11 @@ MANIFEST_TEST_TARGET := build/test_signature_manifest
 ED25519_TEST_TARGET := build/test_ed25519_auth
 QUARANTINE_TEST_TARGET := build/test_quarantine_model
 QUARANTINE_STORE_TEST_TARGET := build/test_quarantine_store
+QUARANTINE_RESTORE_TEST_TARGET := build/test_quarantine_restore
 
 .PHONY: all host amiga check test crypto-check deps-ed25519 clean
 
 all: host
-
 host: $(TARGET)
 
 $(TARGET): $(HOST_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/arexx_amiga.h src/scanner_bridge.h src/signature_bridge.h src/signature_manifest.h src/signature_auth_ed25519.h src/result_store.h src/checksum.h src/identify.h src/quarantine_model.h
@@ -47,6 +47,10 @@ $(QUARANTINE_STORE_TEST_TARGET): tests/test_quarantine_store.c src/quarantine_st
 	@mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) tests/test_quarantine_store.c src/quarantine_store.c src/quarantine_model.c src/checksum.c -o $(QUARANTINE_STORE_TEST_TARGET)
 
+$(QUARANTINE_RESTORE_TEST_TARGET): tests/test_quarantine_restore.c src/quarantine_store.c src/quarantine_model.c src/quarantine_model.h src/checksum.c src/checksum.h
+	@mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) tests/test_quarantine_restore.c src/quarantine_store.c src/quarantine_model.c src/checksum.c -o $(QUARANTINE_RESTORE_TEST_TARGET)
+
 deps-ed25519:
 	bash tools/fetch-ed25519.sh $(ED25519_DIR)
 
@@ -58,11 +62,12 @@ $(ED25519_TEST_TARGET): tests/test_ed25519_auth.c src/signature_auth_ed25519.c s
 crypto-check: $(ED25519_TEST_TARGET)
 	./$(ED25519_TEST_TARGET)
 
-test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET) $(QUARANTINE_TEST_TARGET) $(QUARANTINE_STORE_TEST_TARGET)
+test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET) $(QUARANTINE_TEST_TARGET) $(QUARANTINE_STORE_TEST_TARGET) $(QUARANTINE_RESTORE_TEST_TARGET)
 	./$(TEST_TARGET)
 	./$(MANIFEST_TEST_TARGET)
 	./$(QUARANTINE_TEST_TARGET)
 	./$(QUARANTINE_STORE_TEST_TARGET)
+	./$(QUARANTINE_RESTORE_TEST_TARGET)
 
 check: test
 	@test -f README.md
@@ -70,6 +75,7 @@ check: test
 	@test -f LICENSE
 	@test -f docs/AREXX_API.md
 	@test -f docs/M4_3_QUARANTINE_COMMAND.md
+	@test -f docs/M4_4_RESTORE_POLICY.md
 	@test -f include/amiguard_ae.h
 	@test -f src/main.c
 	@test -f src/core.c
@@ -88,12 +94,13 @@ check: test
 	@test -f src/quarantine_model.h
 	@test -f src/quarantine_store.c
 	@test -f tests/test_quarantine_store.c
+	@test -f tests/test_quarantine_restore.c
 	@test -f examples/ping.rexx
 	@grep -q 'AMIGUARD_AE_AREXX_PORT "AMIGUARD"' include/amiguard_ae.h
 	@grep -q 'QUARANTINE' src/arexx_dispatch.c
 	@grep -q 'm68k-amigaos-gcc' Makefile
 	@grep -q -- '-m68000' Makefile
-	@echo "M4.3 host qualification: PASS"
+	@echo "M4.4 restore core host qualification: PASS"
 
 clean:
 	$(RM) -r $(TARGET) $(TARGET).amiga build

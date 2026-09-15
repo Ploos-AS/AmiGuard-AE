@@ -35,4 +35,11 @@ int amiguard_ae_quarantine_set_directory(const char *directory,
 const char *amiguard_ae_quarantine_directory(void);
 int amiguard_ae_quarantine_available(void);
 
+/* M4.4 restore: verify metadata/object, refuse overwrite, stage destination. */
+int amiguard_ae_quarantine_restore(const char *id,
+                                   char *restored_path,
+                                   unsigned long restored_path_size,
+                                   char *detail,
+                                   unsigned long detail_size);
+
 #endif

@@ -84,13 +84,10 @@ int main(void)
     ok = expect("IDENTIFY RAM:amiguard-ae-hunk.bin",0,"AMIGA-HUNK HUNK_HEADER") && ok;
     ok = expect("RESULT.CLEAR",0,"OK") && ok;
 
-    if (mkdir(quarantine_dir, 0777) != 0) {
-        probe = fopen(quarantine_dir, "rb");
-        if (probe == 0)
-            ok = 0;
-        else
-            fclose(probe);
-    }
+    /* AROS libc does not provide a portable fopen()-based directory probe.
+     * The quarantine store itself is the authoritative directory usability
+     * check, so tolerate mkdir() reporting an existing directory here. */
+    (void)mkdir(quarantine_dir, 0777);
     if (!amiguard_ae_quarantine_set_directory(quarantine_dir, detail, sizeof(detail)))
         ok = 0;
     ok = expect("STATUS",0,"READY M4.3 scanner=connected quarantine=AVAILABLE") && ok;

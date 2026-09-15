@@ -109,15 +109,17 @@ int main(void)
 {
     static const unsigned char checksum_data[] = "123456789";
     static const unsigned char manifest_data[] = "fixture manifest";
-    static const unsigned char quarantine_data[] = "M4.3 quarantine dispatcher fixture";
+    static const unsigned char quarantine_data[] = "M4.4 quarantine/restore dispatcher fixture";
     static const unsigned char hunk_data[] = {0x00U,0x00U,0x03U,0xF3U};
     static const unsigned char iff_data[] = {'F','O','R','M'};
     AmiGuardAEQuarantinePlan qplan;
     char qdetail[AMIGUARD_AE_QUARANTINE_DETAIL_MAX];
     char qcommand[AMIGUARD_AE_QUARANTINE_PATH_MAX + 16];
+    char rcommand[AMIGUARD_AE_QUARANTINE_ID_MAX + 16];
     char qobject[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     char qmetadata[AMIGUARD_AE_QUARANTINE_PATH_MAX];
     char qexpected[AMIGUARD_AE_RESULT_MAX];
+    char rexpected[AMIGUARD_AE_RESULT_MAX];
     int failed = 0;
 
     if (!write_file("build/checksum-fixture.bin", checksum_data, 9UL) ||
@@ -128,12 +130,13 @@ int main(void)
         return 1;
 
     failed += expect("PING",0,"PONG");
-    failed += expect(" version ",0,"AmiGuard AE 0.4.0-m4.3");
-    failed += expect("STATUS",0,"READY M4.3 scanner=not-connected");
+    failed += expect(" version ",0,"AmiGuard AE 0.4.0-m4.4");
+    failed += expect("STATUS",0,"READY M4.4 scanner=not-connected");
     failed += expect("SIGNATURE.STATUS",10,"ERROR signature backend unavailable");
     failed += expect("SIGNATURE.UPDATE",10,"ERROR SIGNATURE.UPDATE requires path CRC32 manifest");
     failed += expect("QUARANTINE",10,"ERROR QUARANTINE requires path");
-    failed += expect("QUARANTINE build/m4_3_quarantine.bin",10,"ERROR quarantine directory unavailable");
+    failed += expect("RESTORE",10,"ERROR RESTORE requires id");
+    failed += expect("QUARANTINE build/m4_4_quarantine.bin",10,"ERROR quarantine directory unavailable");
 
     amiguard_ae_signature_set_count_provider(fake_signature_count);
     amiguard_ae_signature_set_info_provider(fake_signature_info);
@@ -155,16 +158,16 @@ int main(void)
     failed += expect("SCAN",10,"ERROR SCAN requires path");
 
     amiguard_ae_scanner_set_provider(fake_scan);
-    failed += expect("STATUS",0,"READY M4.3 scanner=connected");
+    failed += expect("STATUS",0,"READY M4.4 scanner=connected");
     failed += expect("SCAN clean.bin",0,"CLEAN known-clean");
     failed += expect("RESULT.STATUS",0,"CLEAN");
     failed += expect("SCAN virus.bin",5,"INFECTED Test.Virus");
     failed += expect("RESULT.CLEAR",0,"OK");
 
-    if (!write_file("build/m4_3_quarantine.bin", quarantine_data,
+    if (!write_file("build/m4_4_quarantine.bin", quarantine_data,
                     (unsigned long)(sizeof(quarantine_data) - 1U)))
         return 1;
-    if (!amiguard_ae_quarantine_plan("build/m4_3_quarantine.bin", &qplan,
+    if (!amiguard_ae_quarantine_plan("build/m4_4_quarantine.bin", &qplan,
                                      qdetail, sizeof(qdetail)))
         return 1;
     sprintf(qobject, "build/%s.qtn", qplan.id);
@@ -176,26 +179,35 @@ int main(void)
     if (!amiguard_ae_quarantine_set_directory("build", qdetail, sizeof(qdetail)))
         return 1;
     failed += expect(qcommand, 0, qexpected);
-    if (exists("build/m4_3_quarantine.bin"))
+    if (exists("build/m4_4_quarantine.bin"))
         failed += 1;
     if (!exists(qobject) || !exists(qmetadata))
         failed += 1;
 
+    sprintf(rcommand, "RESTORE %s", qplan.id);
+    sprintf(rexpected, "RESTORED ID=%s PATH=%s QUARANTINE=RETAINED", qplan.id, qplan.source);
+    failed += expect(rcommand, 0, rexpected);
+    if (!exists("build/m4_4_quarantine.bin"))
+        failed += 1;
+    if (!exists(qobject) || !exists(qmetadata))
+        failed += 1;
+    failed += expect(rcommand, 10, "ERROR restore destination exists; refusing overwrite");
+
     failed += expect("BOGUS",10,"ERROR unknown command");
-    failed += expect("",10,"ERROR empty command");
+    failed += expect("",10,"ERROR unknown command");
 
     remove("build/checksum-fixture.bin");
     remove("build/fixture.sigdb");
     remove("build/fixture.manifest");
     remove("build/hunk-fixture.bin");
     remove("build/iff-fixture.bin");
-    remove("build/m4_3_quarantine.bin");
+    remove("build/m4_4_quarantine.bin");
     remove(qobject);
     remove(qmetadata);
     amiguard_ae_quarantine_set_directory(0, qdetail, sizeof(qdetail));
 
     if (failed != 0)
         return 1;
-    puts("M4.3 quarantine dispatcher qualification: PASS");
+    puts("M4.4 restore dispatcher qualification: PASS");
     return 0;
 }

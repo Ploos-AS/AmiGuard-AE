@@ -43,7 +43,7 @@ int main(void)
 {
     static const unsigned char crc[] = "123456789";
     static const unsigned char hunk[] = {0,0,3,0xF3};
-    static const unsigned char quarantine_fixture[] = "M4.3 AROS quarantine fixture";
+    static const unsigned char quarantine_fixture[] = "M4.4 AROS quarantine/restore fixture";
     static const unsigned char sigdb[] =
         "AMIGUARD-FILE-SIGDB 1\n"
         "FILE|AROS.Runtime.Test|0|1|313233343536373839|ffffffffffffffffff\n";
@@ -72,7 +72,7 @@ int main(void)
         return AMIGUARD_AE_RC_FAIL;
 
     ok = expect("PING",0,"PONG") && ok;
-    ok = expect("STATUS",0,"READY M4.3 scanner=connected") && ok;
+    ok = expect("STATUS",0,"READY M4.4 scanner=connected") && ok;
     ok = expect("SIGNATURE.STATUS",0,"READY COUNT=4 UPDATE=AVAILABLE VERIFY=CRC32 AUTH=AVAILABLE") && ok;
     ok = expect("SIGNATURE.UPDATE RAM:amiguard-ae-runtime.sigdb 00000000 RAM:amiguard-ae-runtime.manifest",10,"ERROR checksum mismatch expected=00000000 actual=4D0F09D8") && ok;
     ok = expect("SIGNATURE.UPDATE RAM:amiguard-ae-runtime.sigdb 4D0F09D8 RAM:amiguard-ae-runtime.manifest",0,"UPDATED VERIFIED=CRC32 AUTH=ED25519 runtime signature database loaded") && ok;
@@ -84,13 +84,10 @@ int main(void)
     ok = expect("IDENTIFY RAM:amiguard-ae-hunk.bin",0,"AMIGA-HUNK HUNK_HEADER") && ok;
     ok = expect("RESULT.CLEAR",0,"OK") && ok;
 
-    /* AROS libc does not provide a portable fopen()-based directory probe.
-     * The quarantine store itself is the authoritative directory usability
-     * check, so tolerate mkdir() reporting an existing directory here. */
     (void)mkdir(quarantine_dir, 0777);
     if (!amiguard_ae_quarantine_set_directory(quarantine_dir, detail, sizeof(detail)))
         ok = 0;
-    ok = expect("STATUS",0,"READY M4.3 scanner=connected") && ok;
+    ok = expect("STATUS",0,"READY M4.4 scanner=connected") && ok;
     if (!write_file(quarantine_source, quarantine_fixture,
                     (unsigned long)(sizeof(quarantine_fixture)-1U)))
         ok = 0;
@@ -100,14 +97,13 @@ int main(void)
     sprintf(metadata_path, "%s/%s.meta", quarantine_dir, plan.id);
     sprintf(command, "QUARANTINE %s", quarantine_source);
     sprintf(expected, "QUARANTINED ID=%s PATH=%s", plan.id, object_path);
-
-    /* RC0 is stronger than a post-hoc libc probe here: quarantine_store()
-     * returns RC0 only after the staged object is verified, object and
-     * metadata commits succeed, and the source is removed. RC5 is reserved
-     * for a committed quarantine whose source removal is still pending.
-     * Re-opening freshly renamed RAM: files through AROS libc is not a
-     * reliable additional assertion and previously produced a false red. */
     ok = expect(command,0,expected) && ok;
+
+    sprintf(command, "RESTORE %s", plan.id);
+    sprintf(expected, "RESTORED ID=%s PATH=%s QUARANTINE=RETAINED",
+            plan.id, quarantine_source);
+    ok = expect(command,0,expected) && ok;
+    ok = expect(command,10,"ERROR restore destination exists; refusing overwrite") && ok;
 
     remove("RAM:amiguard-ae-crc.bin");
     remove("RAM:amiguard-ae-hunk.bin");
@@ -119,6 +115,6 @@ int main(void)
 
     if (!ok)
         return AMIGUARD_AE_RC_FAIL;
-    puts("M4.3 AROS quarantine dispatcher smoke: PASS");
+    puts("M4.4 AROS restore dispatcher smoke: PASS");
     return 0;
 }

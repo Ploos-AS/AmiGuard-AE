@@ -10,7 +10,7 @@ CI_KEY_HEX := 43046bfe4092b3e94994eada15dcc20d8aaa07b658fd3954eb8e0efb8bdca5de
 CI_CRYPTO_DEFS := -DAMIGUARD_AE_WITH_ED25519=1 -DAMIGUARD_AE_TRUSTED_KEY_ID=\"$(CI_KEY_ID)\" -DAMIGUARD_AE_TRUSTED_PUBLIC_KEY_HEX=\"$(CI_KEY_HEX)\"
 
 TARGET := AmiGuardAE
-CORE_SOURCES := src/core.c src/arexx_dispatch.c src/scanner_bridge.c src/signature_bridge.c src/signature_manifest.c src/signature_auth_ed25519.c src/result_store.c src/checksum.c src/identify.c src/quarantine_model.c src/quarantine_store.c
+CORE_SOURCES := src/core.c src/arexx_dispatch.c src/scanner_bridge.c src/signature_bridge.c src/signature_manifest.c src/signature_auth_ed25519.c src/result_store.c src/checksum.c src/identify.c src/quarantine_model.c src/quarantine_store.c src/audit_log.c
 HOST_SOURCES := src/main.c src/arexx_amiga.c $(CORE_SOURCES)
 AMIGA_SOURCES := $(HOST_SOURCES)
 TEST_TARGET := build/test_dispatch
@@ -19,19 +19,20 @@ ED25519_TEST_TARGET := build/test_ed25519_auth
 QUARANTINE_TEST_TARGET := build/test_quarantine_model
 QUARANTINE_STORE_TEST_TARGET := build/test_quarantine_store
 QUARANTINE_RESTORE_TEST_TARGET := build/test_quarantine_restore
+AUDIT_TEST_TARGET := build/test_audit_log
 
 .PHONY: all host amiga check test crypto-check deps-ed25519 clean
 
 all: host
 host: $(TARGET)
 
-$(TARGET): $(HOST_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/arexx_amiga.h src/scanner_bridge.h src/signature_bridge.h src/signature_manifest.h src/signature_auth_ed25519.h src/result_store.h src/checksum.h src/identify.h src/quarantine_model.h
+$(TARGET): $(HOST_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/arexx_amiga.h src/scanner_bridge.h src/signature_bridge.h src/signature_manifest.h src/signature_auth_ed25519.h src/result_store.h src/checksum.h src/identify.h src/quarantine_model.h src/audit_log.h
 	$(HOST_CC) $(HOST_CFLAGS) $(HOST_SOURCES) -o $@
 
 amiga:
 	$(AMIGA_CC) $(AMIGA_CFLAGS) $(AMIGA_SOURCES) -o $(TARGET).amiga
 
-$(TEST_TARGET): tests/test_dispatch.c $(CORE_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/scanner_bridge.h src/result_store.h src/checksum.h src/identify.h src/quarantine_model.h src/quarantine_store.c
+$(TEST_TARGET): tests/test_dispatch.c $(CORE_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/scanner_bridge.h src/result_store.h src/checksum.h src/identify.h src/quarantine_model.h src/quarantine_store.c src/audit_log.h
 	@mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) tests/test_dispatch.c $(CORE_SOURCES) -o $(TEST_TARGET)
 
@@ -51,6 +52,10 @@ $(QUARANTINE_RESTORE_TEST_TARGET): tests/test_quarantine_restore.c src/quarantin
 	@mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) tests/test_quarantine_restore.c src/quarantine_store.c src/quarantine_model.c src/checksum.c -o $(QUARANTINE_RESTORE_TEST_TARGET)
 
+$(AUDIT_TEST_TARGET): tests/test_audit_log.c src/audit_log.c src/audit_log.h
+	@mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) tests/test_audit_log.c src/audit_log.c -o $(AUDIT_TEST_TARGET)
+
 deps-ed25519:
 	bash tools/fetch-ed25519.sh $(ED25519_DIR)
 
@@ -62,12 +67,13 @@ $(ED25519_TEST_TARGET): tests/test_ed25519_auth.c src/signature_auth_ed25519.c s
 crypto-check: $(ED25519_TEST_TARGET)
 	./$(ED25519_TEST_TARGET)
 
-test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET) $(QUARANTINE_TEST_TARGET) $(QUARANTINE_STORE_TEST_TARGET) $(QUARANTINE_RESTORE_TEST_TARGET)
+test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET) $(QUARANTINE_TEST_TARGET) $(QUARANTINE_STORE_TEST_TARGET) $(QUARANTINE_RESTORE_TEST_TARGET) $(AUDIT_TEST_TARGET)
 	./$(TEST_TARGET)
 	./$(MANIFEST_TEST_TARGET)
 	./$(QUARANTINE_TEST_TARGET)
 	./$(QUARANTINE_STORE_TEST_TARGET)
 	./$(QUARANTINE_RESTORE_TEST_TARGET)
+	./$(AUDIT_TEST_TARGET)
 
 check: test
 	@test -f README.md
@@ -93,14 +99,17 @@ check: test
 	@test -f src/quarantine_model.c
 	@test -f src/quarantine_model.h
 	@test -f src/quarantine_store.c
+	@test -f src/audit_log.c
+	@test -f src/audit_log.h
 	@test -f tests/test_quarantine_store.c
 	@test -f tests/test_quarantine_restore.c
+	@test -f tests/test_audit_log.c
 	@test -f examples/ping.rexx
 	@grep -q 'AMIGUARD_AE_AREXX_PORT "AMIGUARD"' include/amiguard_ae.h
 	@grep -q 'QUARANTINE' src/arexx_dispatch.c
 	@grep -q 'm68k-amigaos-gcc' Makefile
 	@grep -q -- '-m68000' Makefile
-	@echo "M4.4 restore core host qualification: PASS"
+	@echo "M4.5 audit foundation host qualification: PASS"
 
 clean:
 	$(RM) -r $(TARGET) $(TARGET).amiga build

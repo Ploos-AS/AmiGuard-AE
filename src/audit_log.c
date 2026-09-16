@@ -61,6 +61,9 @@ int amiguard_ae_audit_append(const char *event, const char *status,
                              char *error, unsigned long error_size)
 {
     FILE *fp;
+    int write_failed;
+    int close_failed;
+
     if (!amiguard_ae_audit_available()) {
         set_text(error, error_size, "audit path unavailable");
         return 0;
@@ -75,8 +78,10 @@ int amiguard_ae_audit_append(const char *event, const char *status,
         set_text(error, error_size, "audit open failed");
         return 0;
     }
-    if (fprintf(fp, "AMIGUARD-AUDIT|1|%s|%s|%s|%s\n",
-                event, status, subject, detail) < 0 || fclose(fp) != 0) {
+    write_failed = fprintf(fp, "AMIGUARD-AUDIT|1|%s|%s|%s|%s\n",
+                           event, status, subject, detail) < 0;
+    close_failed = fclose(fp) != 0;
+    if (write_failed || close_failed) {
         set_text(error, error_size, "audit append failed");
         return 0;
     }

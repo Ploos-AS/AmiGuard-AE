@@ -128,11 +128,18 @@ static int valid_crc32_text(const char *text)
 
 static int next_token(const char **cursor, char *out, unsigned long out_size)
 {
-    const char *p = *cursor; const char *start; unsigned long n;
-    while (*p != '\0' && isspace((unsigned char)*p)) ++p; start = p;
-    while (*p != '\0' && !isspace((unsigned char)*p)) ++p; n = (unsigned long)(p - start);
+    const char *p = *cursor;
+    const char *start;
+    unsigned long n;
+    while (*p != '\0' && isspace((unsigned char)*p)) ++p;
+    start = p;
+    while (*p != '\0' && !isspace((unsigned char)*p)) ++p;
+    n = (unsigned long)(p - start);
     if (n == 0UL || n >= out_size) return 0;
-    memcpy(out, start, (size_t)n); out[n] = '\0'; *cursor = p; return 1;
+    memcpy(out, start, (size_t)n);
+    out[n] = '\0';
+    *cursor = p;
+    return 1;
 }
 
 static void dispatch_signature_update(const char *command, AmiGuardAERexxResult *out)
@@ -186,8 +193,11 @@ static void dispatch_result(const char *verb, AmiGuardAERexxResult *out)
 
 void amiguard_ae_arexx_dispatch(const char *command, AmiGuardAERexxResult *out)
 {
-    char verb[32]; char version[64];
-    if (out == NULL) return; if (command == NULL) command = ""; trim_upper_token(command, verb, sizeof(verb));
+    char verb[32];
+    char version[64];
+    if (out == NULL) return;
+    if (command == NULL) command = "";
+    trim_upper_token(command, verb, sizeof(verb));
     if (strcmp(verb, "PING") == 0) set_result(out, AMIGUARD_AE_RC_OK, "PONG");
     else if (strcmp(verb, "VERSION") == 0) { sprintf(version, "%s %s", AMIGUARD_AE_NAME, amiguard_ae_version_string()); set_result(out, AMIGUARD_AE_RC_OK, version); }
     else if (strcmp(verb, "STATUS") == 0) set_result(out, AMIGUARD_AE_RC_OK, amiguard_ae_scanner_available() ? "READY M4.4 scanner=connected" : "READY M4.4 scanner=not-connected");

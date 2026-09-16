@@ -32,7 +32,7 @@ printf '%s\n' "$ED25519_COMMIT" > "$OUT_DIR/ed25519-engine-commit.txt"
 docker pull "$IMAGE"
 docker image inspect "$IMAGE" --format '{{join .RepoDigests "\n"}}' | tee "$OUT_DIR/toolchain-image.txt"
 ED25519_SOURCES=("$ED25519_DIR/src/verify.c" "$ED25519_DIR/src/sha512.c" "$ED25519_DIR/src/ge.c" "$ED25519_DIR/src/fe.c" "$ED25519_DIR/src/sc.c")
-COMMON_SOURCES=(src/core.c src/arexx_dispatch.c src/scanner_bridge.c src/signature_bridge.c src/signature_manifest.c src/signature_auth_ed25519.c src/result_store.c src/checksum.c src/identify.c src/quarantine_model.c src/quarantine_store.c "$AMIGUARD_DIR/src/file_intake.c" "$AMIGUARD_DIR/src/file_signatures.c" "$AMIGUARD_DIR/src/hunk.c" "$AMIGUARD_DIR/src/signatures.c" "${ED25519_SOURCES[@]}")
+COMMON_SOURCES=(src/core.c src/arexx_dispatch.c src/scanner_bridge.c src/signature_bridge.c src/signature_manifest.c src/signature_auth_ed25519.c src/result_store.c src/checksum.c src/identify.c src/quarantine_model.c src/quarantine_store.c src/audit_log.c "$AMIGUARD_DIR/src/file_intake.c" "$AMIGUARD_DIR/src/file_signatures.c" "$AMIGUARD_DIR/src/hunk.c" "$AMIGUARD_DIR/src/signatures.c" "${ED25519_SOURCES[@]}")
 COMMON_FLAGS=(-DAMIGUARD_AE_WITH_AMIGUARD=1 -DAMIGUARD_AE_WITH_ED25519=1 -Iinclude -Isrc -I"$AMIGUARD_DIR/src" -I"$ED25519_DIR/src" -Os -Wall -Wextra -Werror -m68000)
 CI_TRUST_FLAGS=(-DAMIGUARD_AE_TRUSTED_KEY_ID=\"$CI_KEY_ID\" -DAMIGUARD_AE_TRUSTED_PUBLIC_KEY_HEX=\"$CI_KEY_HEX\")
 PROD_TRUST_FLAGS=()

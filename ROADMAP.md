@@ -30,7 +30,7 @@ Implemented: signature count/info/status/update, runtime databases, CRC32 integr
 Security boundary: CRC32 is integrity only; Ed25519 is authenticity. Durable reboot-resistant anti-rollback remains future hardening.
 
 ## M4 - Quarantine and policy
-Status: **in progress**.
+Status: **implementation complete through M4.5; automated host/native-core qualification complete; hardening and classic AmigaOS ARexx transport qualification remain**.
 
 ### M4.1 - Quarantine safety model
 Status: **complete and automated-qualified**.
@@ -52,17 +52,16 @@ Status: **complete and covered by the later M4.3 automated qualification path**.
 ### M4.3 - ARexx quarantine command
 Status: **complete and automated-qualified**.
 
-- `QUARANTINE <path>` dispatcher command.
+- `QUARANTINE <path>` dispatcher command;
 - fail-closed without an explicitly configured quarantine directory;
 - RC 0 committed+removed, RC 5 committed/removal-pending, RC 10 rejected/failed;
 - deterministic `QUARANTINED ID=<id> PATH=<stored-path>` result;
 - host, Bebbo 68000 and FS-UAE/AROS qualification green.
 
 ### M4.4 - Restore and policy
-Status: **restore core implemented; host qualification pending; dispatcher command next**.
+Status: **complete and automated-qualified**.
 
-Implemented restore-core contract:
-
+- `RESTORE <id>` dispatcher command;
 - resolve quarantine object and versioned metadata by deterministic ID;
 - require metadata ID to match requested ID;
 - verify object CRC32 and size before restore;
@@ -70,19 +69,35 @@ Implemented restore-core contract:
 - refuse silent overwrite when destination already exists;
 - stage and verify restored content before destination commit;
 - retain quarantine object and metadata after successful restore;
-- reject tampered quarantine content.
-
-Next M4.4 sub-gate:
-
-- expose `RESTORE <id>` through dispatcher/ARexx;
+- reject tampered quarantine content;
 - deterministic RC/result strings;
-- add RESTORE to native AROS smoke and Bebbo 68000 qualification.
+- host, Bebbo 68000 and FS-UAE/AROS qualification green.
 
 ### M4.5 - Audit/logging
+Status: **complete for the defined best-effort audit contract and automated-qualified**.
 
-- durable audit records;
-- scan/quarantine/restore/signature-update events;
-- deterministic machine-readable status.
+- explicit audit-path policy; disabled by default;
+- append-only `AMIGUARD-AUDIT|1|...` machine-readable records;
+- SCAN/SCANFILE, QUARANTINE, RESTORE and SIGNATURE.UPDATE dispatcher events;
+- deterministic OK/WARN/ERROR status mapping;
+- record-field injection guards;
+- audit implementation linked into production, trusted-CI and AROS-smoke native 68000 builds;
+- host and FS-UAE/AROS automated qualification green.
+
+Security boundary: M4.5 audit writes occur after command dispatch and are best-effort. An audit append failure does not rewrite the result of an operation that has already committed. M4.5 is therefore not a transactional/fail-closed audit journal.
+
+See `docs/M4_5_AUDIT_LOGGING.md`.
+
+### M4 hardening / closeout
+Status: **next**.
+
+Before closing M4 completely:
+
+- tighten restore ID parsing to the exact deterministic ID format;
+- tighten metadata CRC32 and SIZE parsing to reject trailing/ambiguous input;
+- fix audit append close/error handling so the log file is always closed after an attempted write;
+- refresh native qualification labels/evidence from older M4.3/M4.4 names where needed;
+- keep classic AmigaOS public `AMIGUARD`/RexxMast transport qualification in the deferred local runtime gate.
 
 ## M5 - Events and ecosystem integration
 

@@ -20,9 +20,9 @@ QUARANTINE_TEST_TARGET := build/test_quarantine_model
 QUARANTINE_STORE_TEST_TARGET := build/test_quarantine_store
 QUARANTINE_RESTORE_TEST_TARGET := build/test_quarantine_restore
 AUDIT_TEST_TARGET := build/test_audit_log
+AUDIT_DISPATCH_TEST_TARGET := build/test_audit_dispatch
 
 .PHONY: all host amiga check test crypto-check deps-ed25519 clean
-
 all: host
 host: $(TARGET)
 
@@ -32,7 +32,7 @@ $(TARGET): $(HOST_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/arexx_
 amiga:
 	$(AMIGA_CC) $(AMIGA_CFLAGS) $(AMIGA_SOURCES) -o $(TARGET).amiga
 
-$(TEST_TARGET): tests/test_dispatch.c $(CORE_SOURCES) include/amiguard_ae.h src/arexx_dispatch.h src/scanner_bridge.h src/result_store.h src/checksum.h src/identify.h src/quarantine_model.h src/quarantine_store.c src/audit_log.h
+$(TEST_TARGET): tests/test_dispatch.c $(CORE_SOURCES)
 	@mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) tests/test_dispatch.c $(CORE_SOURCES) -o $(TEST_TARGET)
 
@@ -56,6 +56,10 @@ $(AUDIT_TEST_TARGET): tests/test_audit_log.c src/audit_log.c src/audit_log.h
 	@mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) tests/test_audit_log.c src/audit_log.c -o $(AUDIT_TEST_TARGET)
 
+$(AUDIT_DISPATCH_TEST_TARGET): tests/test_audit_dispatch.c $(CORE_SOURCES)
+	@mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) tests/test_audit_dispatch.c $(CORE_SOURCES) -o $(AUDIT_DISPATCH_TEST_TARGET)
+
 deps-ed25519:
 	bash tools/fetch-ed25519.sh $(ED25519_DIR)
 
@@ -67,13 +71,14 @@ $(ED25519_TEST_TARGET): tests/test_ed25519_auth.c src/signature_auth_ed25519.c s
 crypto-check: $(ED25519_TEST_TARGET)
 	./$(ED25519_TEST_TARGET)
 
-test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET) $(QUARANTINE_TEST_TARGET) $(QUARANTINE_STORE_TEST_TARGET) $(QUARANTINE_RESTORE_TEST_TARGET) $(AUDIT_TEST_TARGET)
+test: $(TEST_TARGET) $(MANIFEST_TEST_TARGET) $(QUARANTINE_TEST_TARGET) $(QUARANTINE_STORE_TEST_TARGET) $(QUARANTINE_RESTORE_TEST_TARGET) $(AUDIT_TEST_TARGET) $(AUDIT_DISPATCH_TEST_TARGET)
 	./$(TEST_TARGET)
 	./$(MANIFEST_TEST_TARGET)
 	./$(QUARANTINE_TEST_TARGET)
 	./$(QUARANTINE_STORE_TEST_TARGET)
 	./$(QUARANTINE_RESTORE_TEST_TARGET)
 	./$(AUDIT_TEST_TARGET)
+	./$(AUDIT_DISPATCH_TEST_TARGET)
 
 check: test
 	@test -f README.md
@@ -104,12 +109,13 @@ check: test
 	@test -f tests/test_quarantine_store.c
 	@test -f tests/test_quarantine_restore.c
 	@test -f tests/test_audit_log.c
+	@test -f tests/test_audit_dispatch.c
 	@test -f examples/ping.rexx
 	@grep -q 'AMIGUARD_AE_AREXX_PORT "AMIGUARD"' include/amiguard_ae.h
-	@grep -q 'QUARANTINE' src/arexx_dispatch.c
+	@grep -q 'audit_dispatch_event' src/arexx_dispatch.c
 	@grep -q 'm68k-amigaos-gcc' Makefile
 	@grep -q -- '-m68000' Makefile
-	@echo "M4.5 audit foundation host qualification: PASS"
+	@echo "M4.5 dispatcher audit integration host qualification: PASS"
 
 clean:
 	$(RM) -r $(TARGET) $(TARGET).amiga build

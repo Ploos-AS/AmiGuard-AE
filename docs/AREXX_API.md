@@ -80,18 +80,46 @@ M3 sequence anti-rollback state is process-local. It prevents replay during a ru
 
 See `docs/M3_8A_SIGNED_MANIFEST.md`, `docs/M3_9_SIGNING_TRUST.md`, and `docs/M3_10_PRODUCTION_TRUST_BUILD.md` for the manifest, signing and production provisioning contracts.
 
-## M4 planned quarantine/policy commands
+## M4 quarantine and restore
 
-- `QUARANTINE <path>`
-- `RESTORE <id>`
-- policy/configuration operations
+### `QUARANTINE <path>`
 
-M4 must define safe-path rules, deterministic quarantine IDs/metadata, non-overwrite restore behavior and audit semantics before destructive file operations are enabled.
+Quarantines one source through the explicitly configured quarantine store. The command fails closed when no quarantine directory is configured. It stages and verifies the object and metadata before source removal and refuses an existing quarantine destination.
+
+Stable outcomes include:
+
+- RC 0: `QUARANTINED ID=<id> PATH=<stored-path>`;
+- RC 5: committed quarantine with `SOURCE=REMOVAL_PENDING`;
+- RC 10: rejected or failed operation.
+
+### `RESTORE <id>`
+
+Restores a quarantined object to the original path recorded in its metadata. The object CRC32 and size are verified before restore, the original destination is validated, and an existing destination is never silently overwritten.
+
+A successful restore returns RC 0:
+
+`RESTORED ID=<id> PATH=<original-path> QUARANTINE=RETAINED`
+
+The quarantine object and metadata are deliberately retained after restore for audit/recovery. A second restore while the destination exists fails with RC 10 rather than overwriting it.
+
+## M4.5 audit semantics
+
+When an audit path is explicitly configured through the core policy API, dispatcher operations append deterministic records:
+
+`AMIGUARD-AUDIT|1|<EVENT>|<STATUS>|<SUBJECT>|<DETAIL>`
+
+Audited command families are SCAN/SCANFILE, QUARANTINE, RESTORE and SIGNATURE.UPDATE. RC 0 maps to `OK`, RC 5 to `WARN`, and dispatcher errors to `ERROR`.
+
+Audit logging is disabled by default. M4.5 deliberately does not expose an ARexx command that lets arbitrary automation redirect the audit destination.
+
+Audit append is best-effort after dispatch. An append failure does not rewrite the result of an operation that has already committed, so this is not a transactional/fail-closed audit journal. See `docs/M4_5_AUDIT_LOGGING.md`.
 
 ## Planned configuration interface
 
 - `CONFIG.GET <key>`
 - `CONFIG.SET <key> <value>`
+
+The security model for mutable configuration must be defined before this interface is exposed through the public ARexx port.
 
 ## Planned events
 
